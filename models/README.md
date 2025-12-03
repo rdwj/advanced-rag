@@ -17,11 +17,16 @@ models/
 │       ├── granite-embedding/  # Granite embedding model
 │       ├── minilm-embedding/   # MiniLM embedding model
 │       └── reranker/           # MS-Marco reranker model
-└── gpt-oss/                    # GPT-OSS LLM model (vLLM runtime)
+├── gpt-oss/                    # GPT-OSS LLM model (vLLM runtime)
+│   ├── README.md               # Detailed documentation
+│   ├── scripts/                # Download and upload scripts
+│   ├── manifests/              # OpenShift manifests
+│   └── tiktoken/               # Tokenizer vocabulary files
+└── granite-vision/             # Granite Vision Language Model (vLLM runtime)
     ├── README.md               # Detailed documentation
-    ├── scripts/                # Download and upload scripts
-    ├── manifests/              # OpenShift manifests
-    └── tiktoken/               # Tokenizer vocabulary files
+    └── manifests/              # Kustomize base + overlays
+        ├── base/               # Core deployment resources
+        └── overlays/default/   # Default namespace overlay
 ```
 
 ## Deployed Models
@@ -43,6 +48,16 @@ See [caikit-embeddings/README.md](caikit-embeddings/README.md) for API usage, de
 | `RedHatAI/gpt-oss-20b` | 38.5GB | Tool calling, OpenAI-compatible API | [GPT-OSS](https://gpt-oss-20b-rhaiis-gpt-oss.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com) |
 
 See [gpt-oss/README.md](gpt-oss/README.md) for deployment guide, API usage, and LibreChat integration.
+
+### Granite Vision (Namespace: `granite-vision`)
+
+| Model | Parameters | Context | Use Case |
+|-------|------------|---------|----------|
+| `ibm-granite/granite-vision-3.2-2b` | 2B | 65,536 tokens | Image understanding, document image descriptions |
+
+Used by docling-serve for generating descriptions of images within documents during PDF conversion.
+
+See [granite-vision/README.md](granite-vision/README.md) for deployment guide and docling integration.
 
 ## Quick Reference
 

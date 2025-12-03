@@ -104,3 +104,7 @@ archived/
 agents/
 
 pipelines/
+
+.claude/
+
+CLAUDE.md

@@ -27,28 +27,61 @@ Document → Extraction → LLM Planning → Chunking → Embedding → Vector S
 advanced-rag/
 ├── services/                     # Deployable microservices
 │   ├── chunker_service/          # Go HTTP service for chunking
+│   │   ├── cmd/                  # CLI and server entrypoints
+│   │   ├── pkg/chunking/         # Core chunking logic
+│   │   └── manifests/            # OpenShift deployment YAML
 │   ├── plan_service/             # LLM chunking plan generator
+│   │   ├── lib/                  # Business logic
+│   │   └── manifests/
 │   ├── embedding_service/        # Batch embedding service
+│   │   ├── lib/
+│   │   └── manifests/
 │   ├── rerank_service/           # Reranking abstraction
+│   │   ├── lib/
+│   │   └── manifests/
 │   ├── evaluator_service/        # QA evaluation/scoring
+│   │   ├── lib/
+│   │   └── manifests/
 │   ├── vector_gateway/           # Vector store abstraction
+│   │   ├── lib/
+│   │   └── manifests/
 │   ├── rag_core/                 # Shared Python library
+│   │   └── providers/            # Provider implementations
+│   ├── config/                   # Shared configuration files
 │   └── Makefile                  # Build/deploy automation
-├── pipelines/                    # Python orchestration
-│   ├── rag_pipeline/             # Core pipeline modules
-│   ├── scripts/                  # Utility scripts (ingest, QA, etc.)
-│   ├── tests/                    # pytest tests
-│   └── kubeflow_ingest/          # Kubeflow pipeline definitions
 ├── retrieval-mcp/                # FastMCP server for RAG retrieval
+│   ├── src/
+│   │   ├── core/                 # Core initialization
+│   │   ├── lib/                  # Shared utilities
+│   │   ├── tools/                # MCP tool implementations
+│   │   ├── prompts/              # MCP prompts
+│   │   ├── resources/            # MCP resources
+│   │   └── middleware/           # Request middleware
+│   ├── tests/
+│   └── docs/
 ├── databases/                    # Vector store configurations
-│   ├── milvus/                   # Milvus setup (local + OpenShift)
-│   ├── pgvector/                 # PostgreSQL + pgvector
-│   └── meilisearch/              # Meilisearch configuration
+│   ├── milvus/
+│   │   ├── local/                # Local development setup
+│   │   └── openshift/            # OpenShift deployment
+│   ├── pgvector/
+│   │   ├── local/                # Local with initdb scripts
+│   │   └── openshift/
+│   └── meilisearch/
+│       ├── local/
+│       └── openshift/
+├── models/                       # Model deployment configurations
+│   ├── caikit-embeddings/        # Caikit embedding models
+│   │   ├── manifests/            # Kustomize base + overlays
+│   │   └── scripts/              # Setup/upload scripts
+│   ├── gpt-oss/                  # GPT-OSS model deployment
+│   │   ├── manifests/
+│   │   └── scripts/
+│   └── granite-vision/           # Granite vision model
+│       └── manifests/
 ├── docling-serve/                # Docling document conversion service
-├── models/                       # Model configurations
-├── agents/                       # Agent system prompts
+│   └── manifests/
 ├── docs/                         # Documentation
-└── archived/                     # Deprecated content (preserved)
+└── bin/                          # Compiled binaries (gitignored)
 ```
 
 ## Quick Start

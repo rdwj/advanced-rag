@@ -1,533 +1,233 @@
-# FastMCP Server Template
+# Retrieval MCP Server
 
-A production-ready MCP (Model Context Protocol) server template with dynamic tool/resource loading, Python decorator-based prompts, and seamless OpenShift deployment.
+A FastMCP server that exposes RAG (Retrieval-Augmented Generation) capabilities via the Model Context Protocol. This server provides AI agents with tools to search document collections, list available content, and optimize queries for better retrieval.
 
 ## Features
 
-- 🔧 **Dynamic tool/resource loading** via decorators
-- 📁 **Resource subdirectories** for organizing related resources
-- 📝 **Python-based prompts** with type safety and FastMCP decorators
-- 🔀 **Middleware support** for cross-cutting concerns
-- 🏗️ **Generator system** for scaffolding new components with non-interactive CLI
-- 🔄 **Selective updates** - patch infrastructure without losing custom code
-- 🚀 **One-command OpenShift deployment**
-- 🔥 **Hot-reload** for local development
-- 🧪 **Local STDIO** and **OpenShift HTTP** transports
-- 🔐 **JWT authentication** (optional) with scope-based authorization
-- ✅ **Full test suite** with pytest
+- **Hybrid Search**: Dense vector + BM25 sparse search with reranking
+- **Context Expansion**: Automatically include surrounding chunks for better context
+- **Query Rewriting**: LLM-powered query optimization for improved retrieval
+- **Collection Discovery**: Tools to explore available collections and documents
+- **Flexible Filtering**: Filter by file name, glob pattern, or MIME type
+- **Multiple Output Formats**: Concise citations or detailed JSON responses
+
+## Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   AI Agent      │────▶│  retrieval-mcp  │────▶│ vector-gateway  │
+│   (Claude,      │ MCP │  (FastMCP)      │HTTP │ (FastAPI)       │
+│   LibreChat)    │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  Milvus/PGVector│
+                                                │  (Vector Store) │
+                                                └─────────────────┘
+```
+
+## MCP Tools
+
+### `rag_search`
+
+Primary retrieval tool. Performs hybrid search with reranking and context expansion.
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `query` | string | required | Natural language search query |
+| `collection` | string | required | Collection to search |
+| `top_k` | int | 5 | Number of results (1-20) |
+| `context_window` | int | 2 | Surrounding chunks to include (0-5) |
+| `file_name` | string | null | Filter by exact file name |
+| `file_pattern` | string | null | Filter by glob pattern (e.g., `DMC-BRAKE*`) |
+| `mime_type` | string | null | Filter by MIME type |
+| `min_score` | float | 0.0 | Minimum relevance threshold (0.0-1.0) |
+| `response_format` | string | "concise" | `concise` or `detailed` |
+
+### `rag_list_collections`
+
+Discover available document collections in the vector store.
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `response_format` | string | "concise" | `concise` (names) or `detailed` (with stats) |
+
+### `rag_list_sources`
+
+List documents within a specific collection.
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `collection` | string | required | Collection name |
+| `response_format` | string | "concise" | `concise` or `detailed` |
+| `limit` | int | 50 | Maximum sources to return (1-500) |
+
+### `rag_rewrite_query`
+
+Optimize a query for better retrieval using LLM sampling.
+
+**Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `query` | string | required | Original query to rewrite |
+| `domain_context` | string | null | Domain hints (e.g., "technical maintenance manuals") |
+| `rewrite_style` | string | "expand" | `expand`, `simplify`, or `technical` |
 
 ## Quick Start
 
 ### Local Development
 
 ```bash
-# Install and run locally
+# Install dependencies
 make install
+
+# Run with STDIO transport
 make run-local
 
-# Test with cmcp (in another terminal)
+# Test with cmcp
 cmcp ".venv/bin/python -m src.main" tools/list
 ```
 
 ### Deploy to OpenShift
 
 ```bash
-# IMPORTANT: Remove examples before first deployment
-./remove_examples.sh
+# Deploy to advanced-rag namespace
+make deploy PROJECT=advanced-rag
 
-# One-command deployment
-make deploy
-
-# Or deploy to specific project
-make deploy PROJECT=my-project
+# Check status
+oc get pods -n advanced-rag -l app=retrieval-mcp
 ```
 
-> **Note**: Running `./remove_examples.sh` before deployment removes example code and cache files, significantly reducing build context size and preventing deployment timeouts.
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VECTOR_GATEWAY_URL` | `http://vector-gateway.advanced-rag.svc.cluster.local:8000` | Vector gateway service URL |
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` (local) or `http` (OpenShift) |
+| `MCP_HTTP_PORT` | `8080` | HTTP server port (when using http transport) |
+| `MCP_HTTP_PATH` | `/mcp/` | HTTP endpoint path |
 
 ## Project Structure
 
 ```
+retrieval-mcp/
 ├── src/
-│   ├── core/           # Core server components
-│   ├── tools/          # Tool implementations
-│   ├── resources/      # Resource implementations (supports subdirectories)
-│   │   ├── country_profiles/   # Example: organized by category
-│   │   ├── checklists/
-│   │   └── emergency_protocols/
-│   ├── prompts/        # Python-based prompt definitions
-│   └── middleware/     # Middleware implementations
-├── tests/              # Test suite
-├── .fips-agents-cli/   # Generator templates
-├── .template-info      # Template version tracking (for updates)
-├── Containerfile       # Container definition
+│   ├── core/           # MCP server initialization
+│   ├── lib/            # Shared utilities (vector client, formatters)
+│   ├── tools/          # MCP tool implementations
+│   │   ├── rag_search.py
+│   │   ├── rag_list_collections.py
+│   │   ├── rag_list_sources.py
+│   │   └── rag_rewrite_query.py
+│   ├── prompts/        # MCP prompts (if any)
+│   ├── resources/      # MCP resources (if any)
+│   └── middleware/     # Request middleware
+├── tests/              # pytest test suite
+├── docs/               # Documentation
+├── Containerfile       # Container build
 ├── openshift.yaml      # OpenShift manifests
-├── deploy.sh           # Deployment script
-├── requirements.txt    # Python dependencies
-└── Makefile           # Common tasks
+└── Makefile            # Build/deploy automation
+```
+
+## Integration Examples
+
+### LibreChat Agent
+
+Configure the MCP server in your agent's system prompt:
+
+```
+You have access to a document retrieval system via MCP tools.
+Use the collection "clinical_guidelines" for all searches.
+
+Available tools:
+- rag_search: Search for relevant content
+- rag_list_sources: See available documents
+- rag_rewrite_query: Optimize queries for technical content
+```
+
+### Claude Code
+
+Add to your MCP server configuration:
+
+```json
+{
+  "mcpServers": {
+    "retrieval": {
+      "command": "python",
+      "args": ["-m", "src.main"],
+      "cwd": "/path/to/retrieval-mcp",
+      "env": {
+        "VECTOR_GATEWAY_URL": "https://vector-gateway-advanced-rag.apps.your-cluster.com"
+      }
+    }
+  }
+}
+```
+
+## Testing
+
+```bash
+# Run unit tests
+make test
+
+# Run specific test file
+pytest tests/tools/test_rag_search.py -v
+
+# Test with MCP Inspector (after deployment)
+npx @modelcontextprotocol/inspector https://<route-url>/mcp/
 ```
 
 ## Development
 
-### Adding Tools
+### Adding New Tools
 
-Create a Python file in `src/tools/`. Tools support rich type annotations, validation, and metadata:
+1. Create a new file in `src/tools/`:
 
 ```python
 from typing import Annotated
 from pydantic import Field
-from fastmcp import Context
 from fastmcp.exceptions import ToolError
-from src.core.app import mcp
+from core.app import mcp
 
 @mcp.tool(
     annotations={
         "readOnlyHint": True,
         "idempotentHint": True,
-        "openWorldHint": False,
     }
 )
-async def my_tool(
-    param: Annotated[str, Field(description="Parameter description", min_length=1, max_length=100)],
-    ctx: Context = None,
+async def my_new_tool(
+    param: Annotated[str, Field(description="Parameter description")],
 ) -> str:
     """Tool description for the LLM."""
-    await ctx.info("Processing request")
-
-    if not param.strip():
-        raise ToolError("Parameter cannot be empty")
-
-    return f"Result: {param}"
+    # Implementation
+    return "result"
 ```
 
-**Best Practices:**
-- Use `Annotated` for parameter descriptions (FastMCP 2.11.0+)
-- Add Pydantic `Field` constraints for validation
-- Use tool `annotations` for hints about behavior
-- Always include `ctx: Context = None` for logging and capabilities
-- Raise `ToolError` for user-facing validation errors
-- Use structured output (dataclasses) for complex results
+2. The tool is automatically discovered and registered at startup.
 
-See [TOOLS_GUIDE.md](docs/TOOLS_GUIDE.md) for comprehensive examples and patterns.
-
-**Generator examples:**
-```bash
-# Simple tool
-fips-agents generate tool my_tool \
-    --description "Tool description" \
-    --async
-
-# Tool with context
-fips-agents generate tool search_documents \
-    --description "Search through documents" \
-    --async \
-    --with-context
-
-# Tool with authentication
-fips-agents generate tool protected_operation \
-    --description "Protected operation" \
-    --async \
-    --with-auth
-
-# Tool with parameters from JSON file
-fips-agents generate tool complex_tool \
-    --description "Complex tool with multiple params" \
-    --params params.json \
-    --with-context
-
-# Advanced tool with all options
-fips-agents generate tool advanced_tool \
-    --description "Advanced tool example" \
-    --async \
-    --with-context \
-    --with-auth \
-    --return-type "dict" \
-    --read-only \
-    --idempotent
-```
-
-### Adding Resources
-
-Resources can be organized in subdirectories for better structure. Create files in `src/resources/` or any subdirectory:
-
-**Simple resource:**
-```python
-from src.core.app import mcp
-
-@mcp.resource("resource://my-resource")
-async def get_my_resource() -> str:
-    return "Resource content"
-```
-
-**JSON resource with metadata:**
-```python
-from src.core.app import mcp
-
-@mcp.resource(
-    "data://config",
-    mime_type="application/json",
-    description="Application configuration data"
-)
-async def get_config() -> dict:
-    return {"version": "1.0", "features": ["tools", "resources"]}
-```
-
-**Resource template (parameterized):**
-```python
-from src.core.app import mcp
-
-@mcp.resource("weather://{city}/current")
-async def get_weather(city: str) -> dict:
-    """Weather information for a specific city."""
-    return {"city": city, "temperature": 22, "condition": "Sunny"}
-```
-
-**Organizing resources in subdirectories:**
-```
-src/resources/
-├── country_profiles/
-│   ├── __init__.py
-│   ├── japan.py          # country-profiles://JP
-│   └── france.py         # country-profiles://FR
-├── checklists/
-│   ├── __init__.py
-│   └── travel.py         # travel-checklists://first-trip
-└── emergency_protocols/
-    ├── __init__.py
-    └── passport.py       # emergency-protocols://passport-lost
-```
-
-**Generator examples:**
-```bash
-# Simple resource
-fips-agents generate resource my_resource \
-    --description "My resource description" \
-    --uri "resource://my-resource" \
-    --mime-type "text/plain"
-
-# JSON resource
-fips-agents generate resource config_data \
-    --description "Application configuration" \
-    --uri "data://config" \
-    --mime-type "application/json"
-
-# Resource in subdirectory (creates country_profiles/japan.py)
-fips-agents generate resource country-profiles/japan \
-    --description "Japan country profile" \
-    --uri "country-profiles://JP" \
-    --mime-type "application/json"
-
-# Resource template with async and context
-fips-agents generate resource weather \
-    --async \
-    --with-context \
-    --description "Weather data by city" \
-    --uri "weather://{city}/current" \
-    --mime-type "application/json"
-```
-
-Subdirectories are automatically discovered by the loader - no manual registration needed!
-
-### Creating Prompts
-
-Create Python files in `src/prompts/`. Prompts support multiple return types, async operations, context access, and metadata:
-
-**Basic String Prompt:**
-```python
-from pydantic import Field
-from src.core.app import mcp
-
-@mcp.prompt
-def my_prompt(
-    query: str = Field(description="User query"),
-) -> str:
-    """Purpose of this prompt"""
-    return f"Please answer: {query}"
-```
-
-**Async Prompt with Context:**
-```python
-from pydantic import Field
-from fastmcp import Context
-from src.core.app import mcp
-
-@mcp.prompt
-async def fetch_prompt(
-    url: str = Field(description="Data source URL"),
-    ctx: Context,
-) -> str:
-    """Fetch data and create prompt"""
-    # Perform async operations
-    return f"Analyze data from {url}"
-```
-
-**Structured Message Prompt:**
-```python
-from pydantic import Field
-from fastmcp.prompts.prompt import PromptMessage, TextContent
-from src.core.app import mcp
-
-@mcp.prompt
-def structured_prompt(
-    task: str = Field(description="Task description"),
-) -> PromptMessage:
-    """Create structured message"""
-    return PromptMessage(
-        role="user",
-        content=TextContent(type="text", text=f"Task: {task}")
-    )
-```
-
-**Advanced with Metadata:**
-```python
-from pydantic import Field
-from src.core.app import mcp
-
-@mcp.prompt(
-    name="custom_name",
-    title="Human Readable Title",
-    description="Custom description",
-    tags={"analysis", "reporting"},
-    meta={"version": "1.0", "author": "team"}
-)
-def advanced_prompt(
-    data: dict[str, str] = Field(description="Data to process"),
-) -> str:
-    """Advanced prompt with full metadata"""
-    return f"Analyze: {data}"
-```
-
-**Generator Examples:**
-```bash
-# Basic prompt
-fips-agents generate prompt summarize_text \
-    --description "Summarize text content"
-
-# Async with Context
-fips-agents generate prompt fetch_and_analyze \
-    --async --with-context \
-    --return-type PromptMessage
-
-# With parameters file
-fips-agents generate prompt analyze_data \
-    --params params.json --with-schema
-
-# Advanced with metadata
-fips-agents generate prompt report_generator \
-    --async --with-context \
-    --prompt-name "generate_report" \
-    --title "Report Generator" \
-    --tags "reporting,analysis" \
-    --meta '{"version": "2.0"}'
-```
-
-**Return Types:**
-- `str` - Simple string prompt (default)
-- `PromptMessage` - Structured message with role
-- `list[PromptMessage]` - Multi-turn conversation
-- `PromptResult` - Full prompt result object
-
-See [CLAUDE.md](CLAUDE.md) for comprehensive prompt generation documentation and `src/prompts/` for working examples.
-
-### Adding Middleware
-
-Create a file in `src/middleware/`:
-
-```python
-from typing import Any, Callable
-from fastmcp import Context
-from core.app import mcp
-
-@mcp.middleware()
-async def my_middleware(
-    ctx: Context,
-    next_handler: Callable,
-    *args: Any,
-    **kwargs: Any
-) -> Any:
-    # Pre-execution logic
-    result = await next_handler(*args, **kwargs)
-    # Post-execution logic
-    return result
-```
-
-Middleware wraps tool execution to add cross-cutting concerns like logging, authentication, rate limiting, caching, etc.
-
-See `src/middleware/logging_middleware.py` for a working example and `src/middleware/auth_middleware.py` for a commented authentication pattern.
-
-**Generator examples:**
-```bash
-# Async middleware
-fips-agents generate middleware logging_middleware \
-    --description "Request logging middleware" \
-    --async
-
-# Sync middleware
-fips-agents generate middleware rate_limiter \
-    --description "Rate limiting middleware" \
-    --sync
-```
-
-## Testing
-
-### Local Testing (STDIO)
+### Using Generators
 
 ```bash
-# Run server
-make run-local
+# Generate a new tool
+fips-agents generate tool my_tool --description "Tool description" --async
 
-# Test with cmcp
-make test-local
-
-# Run unit tests
-make test
+# Generate with context support
+fips-agents generate tool search_tool --description "Search tool" --async --with-context
 ```
-
-### OpenShift Testing (HTTP)
-
-```bash
-# Deploy
-make deploy
-
-# Test with MCP Inspector
-npx @modelcontextprotocol/inspector https://<route-url>/mcp/
-```
-
-See [TESTING.md](TESTING.md) for detailed testing instructions.
-
-## Keeping Projects Updated
-
-This template is actively maintained with improvements to infrastructure, generators, and documentation. You can selectively update your project from template changes without losing your custom code.
-
-### Check for Updates
-
-```bash
-# See what's changed since project creation
-fips-agents patch check
-```
-
-This shows available updates organized by category (generators, core, docs, build).
-
-### Update Specific Categories
-
-```bash
-# Update generator templates (safe - your code is untouched)
-fips-agents patch generators
-
-# Update core infrastructure (shows diffs, asks for approval)
-fips-agents patch core
-
-# Update documentation and examples (safe)
-fips-agents patch docs
-
-# Update build and deployment files (shows diffs, asks for approval)
-fips-agents patch build
-
-# Preview changes without applying (dry run)
-fips-agents patch core --dry-run
-```
-
-### Update Everything
-
-```bash
-# Interactively update all categories
-fips-agents patch all
-
-# Skip confirmation prompts (use with caution)
-fips-agents patch all --skip-confirmation
-```
-
-### What Gets Updated
-
-**Automatically updated (no confirmation):**
-- `.fips-agents-cli/generators/` - Code generator templates
-- `docs/` - Documentation files
-- Example files in `src/*/examples/`
-
-**Asks before updating (shows diffs):**
-- `src/core/loaders.py` - Component discovery system
-- `src/core/server.py` - Server bootstrap code
-- `src/*/__ init__.py` - Package initialization files
-- `Makefile`, `Containerfile`, `openshift.yaml` - Build files
-
-**Never updated (your code is protected):**
-- `src/tools/*.py` - Your tool implementations
-- `src/resources/*.py` - Your resource implementations
-- `src/prompts/*.py` - Your prompt definitions
-- `src/middleware/*.py` - Your middleware implementations
-- `tests/` - Your test files
-- `README.md`, `pyproject.toml`, `.env` - Project configuration
-- `src/core/app.py`, `src/core/auth.py`, `src/core/logging.py` - User-customizable core files
-
-### Example: Adding New Template Capabilities
-
-Imagine the template adds new authentication capabilities in a future update:
-
-```bash
-# Check what's new
-fips-agents patch check
-
-# Pull in updated generators so you can generate auth-enabled tools
-fips-agents patch generators
-
-# Review and apply core infrastructure updates
-fips-agents patch core  # Shows diffs, you decide what to apply
-
-# Your existing tools, resources, and prompts remain untouched!
-```
-
-The `.template-info` file tracks which template version your project was created from, enabling smart updates.
-
-## Environment Variables
-
-### Local Development
-- `MCP_TRANSPORT=stdio` - Use STDIO transport
-- `MCP_HOT_RELOAD=1` - Enable hot-reload
-
-### OpenShift Deployment
-- `MCP_TRANSPORT=http` - Use HTTP transport (set automatically)
-- `MCP_HTTP_HOST=0.0.0.0` - HTTP server host
-- `MCP_HTTP_PORT=8080` - HTTP server port
-- `MCP_HTTP_PATH=/mcp/` - HTTP endpoint path
-
-### Optional Authentication
-- `MCP_AUTH_JWT_SECRET` - JWT secret for symmetric signing
-- `MCP_AUTH_JWT_PUBLIC_KEY` - JWT public key for asymmetric
-- `MCP_REQUIRED_SCOPES` - Comma-separated required scopes
-
-## Available Commands
-
-```bash
-make help         # Show all available commands
-make install      # Install dependencies
-make run-local    # Run locally with STDIO
-make test         # Run test suite
-make deploy       # Deploy to OpenShift
-make clean        # Clean up OpenShift deployment
-```
-
-## Architecture
-
-The server uses FastMCP 2.x with:
-- Dynamic component loading at startup
-- Hot-reload in development mode
-- Python decorator-based prompts with type safety
-- Automatic component registration via decorators (`@mcp.tool()`, `@mcp.resource()`, `@mcp.prompt()`, `@mcp.middleware()`)
-- Middleware for cross-cutting concerns
-- Generator system with Jinja2 templates for scaffolding
-- Support for both STDIO (local) and HTTP (OpenShift) transports
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture information and [GENERATOR_PLAN.md](GENERATOR_PLAN.md) for generator system documentation.
 
 ## Requirements
 
 - Python 3.11+
+- FastMCP 2.11+
+- Access to vector-gateway service (for production use)
 - OpenShift CLI (`oc`) for deployment
-- cmcp for local testing: `pip install cmcp`
 
-## Contributing
+## Related Components
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started, development setup, and submission guidelines.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- [vector-gateway](../services/vector_gateway/) - Vector store abstraction service
+- [embedding-service](../services/embedding_service/) - Embedding generation
+- [rerank-service](../services/rerank_service/) - Result reranking
