@@ -1,0 +1,39 @@
+# Embedding Service - Red Hat UBI based container for OpenShift
+# Build from services directory (requires rag_core sibling):
+#   cd services && podman build --platform linux/amd64 -t embedding-service:latest -f embedding_service/Containerfile .
+
+FROM registry.access.redhat.com/ubi9/python-311:latest
+
+USER 0
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    APP_HOME=/app \
+    PYTHONPATH=/app/python
+
+# Copy requirements first for layer caching
+COPY embedding_service/requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy rag_core shared library
+COPY rag_core ./python/rag_core
+
+# Copy application code
+COPY embedding_service/app.py .
+COPY embedding_service/lib ./lib
+
+# Fix permissions for OpenShift arbitrary UID
+RUN chmod -R g=u /app
+
+# Switch to non-root user for OpenShift
+USER 1001
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status==200 else 1)"
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

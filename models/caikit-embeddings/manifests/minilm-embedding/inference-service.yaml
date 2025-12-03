@@ -1,0 +1,26 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: all-minilm-l6-v2
+  namespace: caikit-embeddings
+  annotations:
+    openshift.io/display-name: all-MiniLM-L6-v2 Embedding Model
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: caikit
+      runtime: caikit-standalone-runtime
+      storage:
+        key: aws-connection-model-storage
+        path: minilm-models
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi

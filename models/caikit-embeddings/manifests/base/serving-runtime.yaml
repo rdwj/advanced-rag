@@ -1,0 +1,66 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: caikit-standalone-runtime
+  namespace: caikit-embeddings
+  annotations:
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    openshift.io/display-name: Caikit Standalone ServingRuntime for KServe
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8086"
+  containers:
+  - name: kserve-container
+    image: quay.io/modh/caikit-nlp@sha256:24d74898dc50ebdd3526f6cb8a028a521e79adf5bfe52559afd3734900da975e
+    command:
+    - python
+    - -m
+    - caikit.runtime
+    env:
+    - name: RUNTIME_LOCAL_MODELS_DIR
+      value: /mnt/models
+    - name: HF_HOME
+      value: /tmp/hf_home
+    - name: RUNTIME_GRPC_ENABLED
+      value: "false"
+    - name: RUNTIME_HTTP_ENABLED
+      value: "true"
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    livenessProbe:
+      exec:
+        command:
+        - python
+        - -m
+        - caikit_health_probe
+        - liveness
+      initialDelaySeconds: 5
+    readinessProbe:
+      exec:
+        command:
+        - python
+        - -m
+        - caikit_health_probe
+        - readiness
+      initialDelaySeconds: 5
+    startupProbe:
+      failureThreshold: 24
+      httpGet:
+        path: /health
+        port: 8080
+      periodSeconds: 30
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "4"
+        memory: 8Gi
+  multiModel: false
+  supportedModelFormats:
+  - autoSelect: true
+    name: caikit

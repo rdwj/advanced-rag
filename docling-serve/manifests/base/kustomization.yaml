@@ -1,0 +1,14 @@
+# Docling Serve - Base Kustomization
+# Namespace-agnostic base; overlays set target namespace and image variant
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- deployment.yaml
+- service.yaml
+- route.yaml
+
+commonLabels:
+  app.kubernetes.io/name: docling-serve
+  app.kubernetes.io/component: document-conversion
+  app.kubernetes.io/part-of: advanced-rag

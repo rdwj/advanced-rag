@@ -1,0 +1,31 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: gpt-oss-20b
+  namespace: gpt-oss
+  annotations:
+    openshift.io/display-name: GPT-OSS-20B
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+    model:
+      modelFormat:
+        name: vllm
+      runtime: vllm-gptoss-runtime
+      # Use model car image with tiktoken file already bundled
+      storageUri: oci://quay.io/wjackson/models:gpt-oss-20b
+    resources:
+      requests:
+        cpu: "4"
+        memory: 24Gi
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "8"
+        memory: 32Gi
+        nvidia.com/gpu: "1"

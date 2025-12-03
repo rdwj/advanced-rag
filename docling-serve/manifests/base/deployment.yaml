@@ -1,0 +1,67 @@
+# Docling Serve Deployment - Base Configuration
+# Document conversion service (PDF to Markdown)
+#
+# PRODUCTION HARDENING (add as needed):
+# - Add PodDisruptionBudget for HA: minAvailable: 1
+# - Add NetworkPolicy to restrict ingress
+# - Add ResourceQuota/LimitRange at namespace level
+# - Consider HorizontalPodAutoscaler for scaling
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+        component: docling-serve-api
+    spec:
+      restartPolicy: Always
+      # Security context (OpenShift defaults, made explicit)
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: api
+        # Image is set by overlays (cpu or gpu variant)
+        image: ghcr.io/docling-project/docling-serve-cpu
+        ports:
+        - name: http
+          containerPort: 5001
+          protocol: TCP
+        env:
+        - name: DOCLING_SERVE_ENABLE_UI
+          value: 'true'
+        resources:
+          limits:
+            cpu: "4"
+            memory: 8Gi
+          requests:
+            cpu: "1"
+            memory: 4Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5

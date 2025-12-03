@@ -1,0 +1,62 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: vllm-gptoss-runtime
+  namespace: gpt-oss
+  labels:
+    opendatahub.io/dashboard: "true"
+  annotations:
+    opendatahub.io/runtime-version: "v0.11"
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    openshift.io/display-name: "GPT-OSS vLLM Runtime"
+    opendatahub.io/apiProtocol: "REST"
+spec:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+  multiModel: false
+  supportedModelFormats:
+    - name: vllm
+      autoSelect: true
+  containers:
+    - name: kserve-container
+      # vLLM v0.11.2 - latest with served-model-name fix
+      image: vllm/vllm-openai:v0.11.2
+      command:
+        - python
+        - -m
+        - vllm.entrypoints.openai.api_server
+      args:
+        - --port=8080
+        - --model=/mnt/models
+        - --served-model-name
+        - "{{.Name}}"
+        - --trust-remote-code
+      env:
+        # Point to the tiktoken file bundled in the model car
+        - name: TIKTOKEN_ENCODINGS_BASE
+          value: "/mnt/models"
+        # Use Triton attention for Ampere GPUs
+        - name: VLLM_ATTENTION_BACKEND
+          value: "TRITON_ATTN"
+        # Redirect all cache directories to /tmp (OpenShift runs as random UID)
+        - name: HF_HOME
+          value: "/tmp/hf"
+        - name: TRANSFORMERS_CACHE
+          value: "/tmp/transformers"
+        - name: VLLM_CACHE_DIR
+          value: "/tmp/vllm"
+        - name: FLASHINFER_WORKSPACE_DIR
+          value: "/tmp/flashinfer"
+        - name: XDG_CACHE_HOME
+          value: "/tmp"
+        - name: HOME
+          value: "/tmp"
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+      resources:
+        limits:
+          nvidia.com/gpu: "1"
+        requests:
+          nvidia.com/gpu: "1"

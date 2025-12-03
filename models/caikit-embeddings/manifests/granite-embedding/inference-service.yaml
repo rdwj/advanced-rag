@@ -1,0 +1,28 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: granite-embedding-278m
+  namespace: caikit-embeddings
+  annotations:
+    openshift.io/display-name: Granite Embedding 278M
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: caikit
+      runtime: caikit-standalone-runtime
+      storage:
+        key: aws-connection-model-storage
+        # Parent folder containing granite-embedding-278m subfolder
+        # Caikit requires: parent-folder/model-name/config.yml structure
+        path: granite-models
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "4"
+        memory: 8Gi

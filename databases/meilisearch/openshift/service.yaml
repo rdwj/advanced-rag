@@ -1,0 +1,19 @@
+# Service for internal cluster access to Meilisearch
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meilisearch
+  labels:
+    app: meilisearch
+    app.kubernetes.io/name: meilisearch
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 7700
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: meilisearch

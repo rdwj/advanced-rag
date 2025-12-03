@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: granite-embedding-278m
+  namespace: caikit-embeddings
+  labels:
+    app: granite-embedding-278m
+spec:
+  to:
+    kind: Service
+    name: granite-embedding-278m-svc
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

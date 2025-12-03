@@ -1,0 +1,26 @@
+# Docling Serve - CPU Overlay
+# For development/testing environments without GPU
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: docling-serve
+
+resources:
+- ../../base
+- namespace.yaml
+
+images:
+- name: ghcr.io/docling-project/docling-serve-cpu
+  newName: ghcr.io/docling-project/docling-serve-cpu
+  # Pin to a specific tag for reproducibility (update as needed)
+  # newTag: v1.0.0
+
+patches:
+# Increase route timeout for large documents
+- target:
+    kind: Route
+    name: docling-serve
+  patch: |
+    - op: replace
+      path: /metadata/annotations/haproxy.router.openshift.io~1timeout
+      value: "300s"

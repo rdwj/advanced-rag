@@ -1,0 +1,8 @@
+# Namespace for advanced-rag services
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: advanced-rag
+  labels:
+    app.kubernetes.io/part-of: advanced-rag

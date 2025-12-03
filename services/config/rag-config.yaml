@@ -1,0 +1,152 @@
+# RAG Pipeline Configuration
+# This file configures embedding and reranking providers for the pipeline.
+#
+# Provider Selection:
+#   Set 'active' under embedding/rerank to choose the provider.
+#   Environment variables can override: RAG_EMBEDDING_PROVIDER, RAG_RERANK_PROVIDER
+#
+# API Keys:
+#   Keys are read from environment variables specified in api_key_env.
+#   Never commit actual API keys to this file.
+
+embedding:
+  active: openai
+
+  providers:
+    openai:
+      type: openai-compatible
+      base_url: https://api.openai.com/v1
+      api_key_env: OPENAI_API_KEY
+      model: text-embedding-3-small
+      dimensions: 1536
+      max_batch: 64
+      max_tokens_per_input: 8191
+
+    openai-large:
+      type: openai-compatible
+      base_url: https://api.openai.com/v1
+      api_key_env: OPENAI_API_KEY
+      model: text-embedding-3-large
+      dimensions: 3072
+      max_batch: 64
+      max_tokens_per_input: 8191
+
+    # Local vLLM deployment
+    vllm-local:
+      type: openai-compatible
+      base_url: http://localhost:8000/v1
+      api_key_env: VLLM_API_KEY
+      model: BAAI/bge-m3
+      dimensions: 1024
+      max_batch: 32
+
+    # OpenShift deployed embedding model
+    openshift-embedding:
+      type: openai-compatible
+      base_url: http://embedding-model.ai-models.svc.cluster.local:8000/v1
+      api_key_env: EMBEDDING_API_KEY
+      model: BAAI/bge-large-en-v1.5
+      dimensions: 1024
+      max_batch: 32
+
+    # Text Embeddings Inference (TEI) on OpenShift
+    tei-openshift:
+      type: openai-compatible
+      base_url: http://tei-service.ai-apps.svc.cluster.local:8080/v1
+      api_key_env: TEI_API_KEY
+      model: BAAI/bge-large-en-v1.5
+      dimensions: 1024
+      max_batch: 32
+
+    # Cohere embeddings
+    cohere:
+      type: cohere
+      base_url: https://api.cohere.com/v1
+      api_key_env: COHERE_API_KEY
+      model: embed-english-v3.0
+      dimensions: 1024
+      input_type: search_document
+
+    # OpenRouter (routes to various providers)
+    openrouter:
+      type: openai-compatible
+      base_url: https://openrouter.ai/api/v1
+      api_key_env: OPENROUTER_API_KEY
+      model: openai/text-embedding-3-small
+      dimensions: 1536
+
+    # Caikit NLP - Granite Embedding (IBM/Red Hat)
+    caikit-granite:
+      type: caikit
+      base_url: https://granite-embedding-278m-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com
+      model: granite-embedding-278m
+      dimensions: 768
+      max_batch: 32
+
+    # Caikit NLP - MiniLM (smaller, faster)
+    caikit-minilm:
+      type: caikit
+      base_url: https://all-minilm-l6-v2-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com
+      model: all-minilm-l6-v2
+      dimensions: 384
+      max_batch: 64
+
+rerank:
+  active: cohere
+
+  providers:
+    cohere:
+      type: cohere
+      base_url: https://api.cohere.com/v1
+      api_key_env: COHERE_API_KEY
+      model: rerank-english-v3.0
+      max_documents: 1000
+
+    cohere-multilingual:
+      type: cohere
+      base_url: https://api.cohere.com/v1
+      api_key_env: COHERE_API_KEY
+      model: rerank-multilingual-v3.0
+      max_documents: 1000
+
+    # Jina reranker
+    jina:
+      type: jina
+      base_url: https://api.jina.ai/v1
+      api_key_env: JINA_API_KEY
+      model: jina-reranker-v2-base-multilingual
+      max_documents: 1000
+
+    # Local vLLM reranker deployment
+    vllm-rerank:
+      type: openai-compatible
+      base_url: http://localhost:8001/v1
+      api_key_env: VLLM_RERANK_API_KEY
+      model: BAAI/bge-reranker-v2-m3
+      max_documents: 100
+
+    # OpenShift deployed rerank model
+    openshift-rerank:
+      type: openai-compatible
+      base_url: http://rerank-model.ai-models.svc.cluster.local:8000/v1
+      api_key_env: RERANK_API_KEY
+      model: BAAI/bge-reranker-v2-m3
+      max_documents: 100
+
+    # Caikit NLP - MS-MARCO Reranker (IBM/Red Hat)
+    caikit-reranker:
+      type: caikit
+      base_url: https://ms-marco-reranker-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com
+      model: ms-marco-reranker
+      max_documents: 100
+
+    # Disable reranking
+    none:
+      type: passthrough
+
+# Optional: Microservice URLs
+# If set, embed_texts() and rerank_documents() will call these services first
+# before falling back to direct provider calls.
+services:
+  embedding_service_url: null  # e.g., http://embedding-service:8000
+  rerank_service_url: null     # e.g., http://rerank-service:8003

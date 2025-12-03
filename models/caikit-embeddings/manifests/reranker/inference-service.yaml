@@ -1,0 +1,26 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: ms-marco-reranker
+  namespace: caikit-embeddings
+  annotations:
+    openshift.io/display-name: MS MARCO Reranker (MiniLM-L12)
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: caikit
+      runtime: caikit-standalone-runtime
+      storage:
+        key: aws-connection-model-storage
+        path: reranker-models
+    resources:
+      requests:
+        cpu: "1"
+        memory: 2Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi

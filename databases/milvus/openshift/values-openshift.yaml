@@ -1,0 +1,72 @@
+# Milvus Helm Chart Values for OpenShift
+# Tested with: Helm Chart 5.0.8, Milvus 2.6.6
+#
+# Usage:
+#   helm install milvus milvus/milvus -n advanced-rag -f values-openshift.yaml
+#
+# Prerequisites:
+#   oc adm policy add-scc-to-user anyuid -z default -n advanced-rag
+#   oc adm policy add-scc-to-user anyuid -z milvus-minio -n advanced-rag
+
+# Standalone mode (single-node deployment)
+cluster:
+  enabled: false
+
+# etcd configuration
+etcd:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+
+# MinIO configuration (object storage)
+minio:
+  mode: standalone
+  persistence:
+    enabled: true
+    size: 20Gi
+
+# Disable Pulsar/Kafka messaging (not needed for standalone)
+pulsar:
+  enabled: false
+pulsarv3:
+  enabled: false
+kafka:
+  enabled: false
+
+# Enable streaming with embedded woodpecker (lightweight alternative to Pulsar)
+streaming:
+  enabled: true
+  woodpecker:
+    embedded: true
+    storage:
+      type: minio
+
+# OpenShift security contexts (required for restricted SCC compatibility)
+securityContext:
+  runAsNonRoot: true
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# Resource limits (adjust based on workload)
+standalone:
+  resources:
+    requests:
+      cpu: "1"
+      memory: 4Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+# Milvus configuration
+extraConfigFiles:
+  user.yaml: |
+    common:
+      security:
+        authorizationEnabled: false

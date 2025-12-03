@@ -1,0 +1,34 @@
+# Chunker Service - Go-based sliding window chunker
+# Build from chunker_service directory:
+#   cd services/chunker_service
+#   podman build -t chunker-service:latest -f Containerfile .
+
+# Build stage - using golang official image since UBI9 go-toolset:1.22 may not be available
+FROM golang:1.22 as builder
+
+WORKDIR /src
+
+# Copy Go module files first for layer caching
+COPY go.mod ./
+
+# Copy Go source code
+COPY cmd ./cmd
+COPY pkg ./pkg
+
+# Build the server binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/chunker-server ./cmd/chunker-server
+
+# Also build the CLI binary for local pipeline use
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/chunker ./cmd/chunker
+
+# Runtime stage - minimal UBI image
+FROM registry.access.redhat.com/ubi9/ubi-micro:latest
+
+COPY --from=builder /out/chunker-server /usr/local/bin/chunker-server
+
+# Run as non-root user for OpenShift
+USER 1001
+
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/chunker-server"]

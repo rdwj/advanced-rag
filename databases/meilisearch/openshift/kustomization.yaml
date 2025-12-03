@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Meilisearch for vector/hybrid search
+#
+# Deploy to advanced-rag namespace:
+#   oc adm policy add-scc-to-user anyuid -z default -n advanced-rag
+#   oc apply -k databases/meilisearch/openshift/ -n advanced-rag
+#
+# Deploy to a different namespace (for testing):
+#   oc new-project meilisearch-test
+#   oc adm policy add-scc-to-user anyuid -z default -n meilisearch-test
+#   oc apply -k databases/meilisearch/openshift/ -n meilisearch-test
+#
+# The namespace is NOT hardcoded here, allowing deployment to any namespace:
+#   oc apply -k databases/meilisearch/openshift/ -n your-namespace
+#
+# After deployment, enable vector search:
+#   MEILI_URL=$(oc get route meilisearch -o jsonpath='{.spec.host}' -n <namespace>)
+#   curl -X PATCH "https://${MEILI_URL}/experimental-features/" \
+#     -H 'Authorization: Bearer changeme-in-production' \
+#     -H 'Content-Type: application/json' \
+#     --data-binary '{"vectorStore": true}'
+
+resources:
+  - secret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - route.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: advanced-rag
+    includeSelectors: false
+
+# Environment-specific overlays can be added here in the future:
+# Example structure:
+#   databases/meilisearch/openshift/
+#   ├── base/           # Move current files here
+#   │   ├── kustomization.yaml
+#   │   ├── deployment.yaml
+#   │   └── ...
+#   └── overlays/
+#       ├── dev/
+#       │   └── kustomization.yaml  # patches for dev (smaller resources)
+#       ├── staging/
+#       │   └── kustomization.yaml  # patches for staging
+#       └── prod/
+#           └── kustomization.yaml  # patches for prod (larger resources)

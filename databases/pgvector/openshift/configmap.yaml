@@ -1,0 +1,30 @@
+# ConfigMap containing initialization scripts for PostgreSQL
+# These run on first startup to configure the database
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgvector-init-scripts
+  labels:
+    app: pgvector
+    app.kubernetes.io/name: pgvector
+    app.kubernetes.io/part-of: advanced-rag
+data:
+  # Enable pgvector extension on database creation
+  01_enable_pgvector.sql: |
+    -- Enable the pgvector extension
+    CREATE EXTENSION IF NOT EXISTS vector;
+
+    -- Optional: Create a sample table structure for RAG embeddings
+    -- Uncomment if you want a default table created
+    -- CREATE TABLE IF NOT EXISTS documents (
+    --     id BIGSERIAL PRIMARY KEY,
+    --     content TEXT NOT NULL,
+    --     metadata JSONB,
+    --     embedding vector(1536),  -- OpenAI text-embedding-3-small dimension
+    --     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    -- );
+    --
+    -- CREATE INDEX IF NOT EXISTS documents_embedding_idx
+    --     ON documents USING ivfflat (embedding vector_l2_ops)
+    --     WITH (lists = 100);

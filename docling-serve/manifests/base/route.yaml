@@ -1,0 +1,21 @@
+# Docling Serve Route (OpenShift)
+# Note: timeout annotation is set in overlays (cpu/gpu have different values)
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+  annotations:
+    # Default timeout; overlays can increase for large documents
+    haproxy.router.openshift.io/timeout: 300s
+spec:
+  to:
+    kind: Service
+    name: docling-serve
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

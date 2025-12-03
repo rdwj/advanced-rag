@@ -1,0 +1,8 @@
+# Granite Vision Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: granite-vision
+  labels:
+    app.kubernetes.io/name: granite-vision
+    app.kubernetes.io/part-of: advanced-rag

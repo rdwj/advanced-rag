@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: granite-embedding-278m-svc
+  namespace: caikit-embeddings
+  labels:
+    app: granite-embedding-278m
+spec:
+  type: ClusterIP
+  selector:
+    serving.kserve.io/inferenceservice: granite-embedding-278m
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP

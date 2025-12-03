@@ -1,0 +1,19 @@
+# PersistentVolumeClaim for HuggingFace model cache
+# Prevents re-downloading the model on pod restarts
+#
+# Size: 20Gi is sufficient for granite-vision-3.2-2b (~4GB model)
+# with room for tokenizer files and cache metadata
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: granite-vision-cache
+  labels:
+    app: granite-vision
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  # storageClassName: gp3-csi  # Uncomment and adjust for your cluster

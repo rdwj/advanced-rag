@@ -1,0 +1,64 @@
+# Docling Serve - GPU Overlay
+# For production environments with GPU and VLM integration
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: docling-serve
+
+resources:
+- ../../base
+- namespace.yaml
+
+images:
+- name: ghcr.io/docling-project/docling-serve-cpu
+  newName: ghcr.io/docling-project/docling-serve-cu126
+  # Pin to a specific tag for reproducibility (update as needed)
+  # newTag: v1.0.0
+
+patches:
+# GPU-specific deployment patches
+- target:
+    kind: Deployment
+    name: docling-serve
+  patch: |
+    - op: add
+      path: /spec/template/spec/tolerations
+      value:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+    - op: add
+      path: /spec/template/spec/nodeSelector
+      value:
+        node-role.kubernetes.io/worker-gpu: ""
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        limits:
+          cpu: "4"
+          memory: 16Gi
+          nvidia.com/gpu: "1"
+        requests:
+          cpu: "1"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: DOCLING_SERVE_ENABLE_REMOTE_SERVICES
+        value: 'true'
+    - op: replace
+      path: /spec/template/spec/containers/0/livenessProbe/initialDelaySeconds
+      value: 120
+    - op: replace
+      path: /spec/template/spec/containers/0/readinessProbe/initialDelaySeconds
+      value: 60
+
+# Increase route timeout for large documents with GPU processing
+- target:
+    kind: Route
+    name: docling-serve
+  patch: |
+    - op: replace
+      path: /metadata/annotations/haproxy.router.openshift.io~1timeout
+      value: "600s"

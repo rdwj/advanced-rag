@@ -1,0 +1,12 @@
+# Granite Vision - Default Overlay
+# Sets namespace and any environment-specific patches
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: granite-vision
+
+resources:
+- ../../base
+
+# Create the namespace
+- namespace.yaml

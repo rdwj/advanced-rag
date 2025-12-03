@@ -1,0 +1,22 @@
+# Route for external access to Meilisearch
+# Optional - only needed if you want to access from outside the cluster
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: meilisearch
+  labels:
+    app: meilisearch
+    app.kubernetes.io/name: meilisearch
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  to:
+    kind: Service
+    name: meilisearch
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

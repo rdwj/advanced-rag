@@ -1,0 +1,98 @@
+# Meilisearch Deployment for OpenShift
+# Uses official Meilisearch image with vector search capability
+#
+# PREREQUISITE: Grant anyuid SCC to default service account:
+#   oc adm policy add-scc-to-user anyuid -z default -n <namespace>
+#
+# After deployment, enable vector search:
+#   curl -X PATCH 'https://<route>/experimental-features/' \
+#     -H 'Authorization: Bearer <master-key>' \
+#     -H 'Content-Type: application/json' \
+#     --data-binary '{"vectorStore": true}'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meilisearch
+  labels:
+    app: meilisearch
+    app.kubernetes.io/name: meilisearch
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Required for single-instance with PVC
+  selector:
+    matchLabels:
+      app: meilisearch
+  template:
+    metadata:
+      labels:
+        app: meilisearch
+        app.kubernetes.io/name: meilisearch
+        app.kubernetes.io/part-of: advanced-rag
+    spec:
+      containers:
+        - name: meilisearch
+          image: docker.io/getmeili/meilisearch:v1.16
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7700
+              protocol: TCP
+          env:
+            - name: MEILI_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: meilisearch-credentials
+                  key: MEILI_MASTER_KEY
+            - name: MEILI_ENV
+              value: "production"
+            # Use subdirectory to avoid lost+found directory on PVC
+            - name: MEILI_DB_PATH
+              value: "/meili_data/db"
+            - name: MEILI_HTTP_ADDR
+              value: "0.0.0.0:7700"
+            # Uncomment to enable experimental features by default
+            # - name: MEILI_EXPERIMENTAL_VECTOR_STORE
+            #   value: "true"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: data
+              mountPath: /meili_data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          # Note: Meilisearch image runs as root by default
+          # anyuid SCC allows this on OpenShift
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   runAsNonRoot: true
+          #   seccompProfile:
+          #     type: RuntimeDefault
+          #   capabilities:
+          #     drop:
+          #       - ALL
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: meilisearch-data
+      restartPolicy: Always

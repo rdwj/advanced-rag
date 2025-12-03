@@ -1,0 +1,15 @@
+# Granite Vision 3.2 2B - Base Kustomization
+# Namespace-agnostic base; overlays set the target namespace
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- pvc.yaml
+- deployment.yaml
+- service.yaml
+- route.yaml
+
+commonLabels:
+  app.kubernetes.io/name: granite-vision
+  app.kubernetes.io/component: vllm-inference
+  app.kubernetes.io/part-of: advanced-rag

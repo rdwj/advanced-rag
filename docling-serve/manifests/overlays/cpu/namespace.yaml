@@ -1,0 +1,8 @@
+# Docling Serve Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: docling-serve
+  labels:
+    app.kubernetes.io/name: docling-serve
+    app.kubernetes.io/part-of: advanced-rag

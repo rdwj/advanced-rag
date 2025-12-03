@@ -1,0 +1,7 @@
+# Layer tiktoken vocab file on top of existing GPT-OSS model car
+# This adds the o200k_base.tiktoken file required by RHAIIS/openai_harmony
+
+FROM quay.io/wjackson/models:gpt-oss-20b
+
+# Add tiktoken vocab file to model directory root
+COPY tiktoken/o200k_base.tiktoken /models/o200k_base.tiktoken

@@ -1,0 +1,106 @@
+# Granite Vision 3.2 2B - vLLM Deployment
+# Vision Language Model for image understanding and descriptions
+#
+# PRODUCTION HARDENING (add as needed):
+# - Add PodDisruptionBudget for HA: minAvailable: 1
+# - Add NetworkPolicy to restrict ingress to specific namespaces
+# - Add ResourceQuota/LimitRange at namespace level
+# - Consider HorizontalPodAutoscaler for scaling (requires metrics-server)
+# - Add Pod anti-affinity for multi-replica deployments
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: granite-vision
+  labels:
+    app: granite-vision
+    component: vllm-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: granite-vision
+  template:
+    metadata:
+      labels:
+        app: granite-vision
+        component: vllm-inference
+    spec:
+      # GPU scheduling
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      nodeSelector:
+        node-role.kubernetes.io/worker-gpu: ""
+      # Security context (OpenShift defaults, made explicit)
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.6.6.post1
+        args:
+        - --model
+        - ibm-granite/granite-vision-3.2-2b
+        - --port
+        - "8000"
+        - --served-model-name
+        - granite-vision
+        - --dtype
+        - bfloat16
+        - --max-model-len
+        - "65536"
+        - --trust-remote-code
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          limits:
+            cpu: "4"
+            memory: 24Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: "1"
+            memory: 12Gi
+            nvidia.com/gpu: "1"
+        env:
+        - name: HF_HOME
+          value: /cache/huggingface
+        - name: TRANSFORMERS_CACHE
+          value: /cache/huggingface
+        - name: HF_HUB_CACHE
+          value: /cache/huggingface/hub
+        volumeMounts:
+        - name: model-cache
+          mountPath: /cache
+        - name: shm
+          mountPath: /dev/shm
+        securityContext:
+          allowPrivilegeEscalation: false
+        # Startup probe for initial model loading (can take 5-10 minutes)
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          failureThreshold: 60
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: granite-vision-cache
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 8Gi

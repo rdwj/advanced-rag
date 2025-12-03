@@ -1,0 +1,15 @@
+{
+  "backend": "milvus",
+  "require_backend": false,
+  "milvus": {
+    "host": "127.0.0.1",
+    "port": 19530,
+    "collection": "rag_gateway",
+    "dim": 1536,
+    "user": "",
+    "password": ""
+  },
+  "memory": {
+    "max_docs": 10000
+  }
+}

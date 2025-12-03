@@ -1,0 +1,19 @@
+# Persistent Volume Claim for PostgreSQL data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgvector-data
+  labels:
+    app: pgvector
+    app.kubernetes.io/name: pgvector
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Adjust size based on expected data volume
+      # Vector embeddings can be large: 1536 dims * 4 bytes * num_docs
+      storage: 10Gi
+  # storageClassName: gp3  # Uncomment and adjust for your cluster

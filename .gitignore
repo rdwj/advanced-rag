@@ -1,0 +1,106 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.so
+.build/
+.eggs/
+*.egg-info/
+*.egg
+.venv/
+**/.venv/
+.uv/
+
+# Environment files
+.env
+**/.env
+.env.*
+.envrc
+
+# Editors/OS
+.DS_Store
+**/.DS_Store
+*.swp
+.idea/
+.vscode/
+.history/
+
+# Byte-compiled / cache
+*.cache/
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# Node (if present)
+node_modules/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Lock files (uv)
+uv.lock
+uv.lock.*
+
+# OpenShift/Build
+.oc-build/*
+.openshift/*
+kubeconfig*
+*.kubeconfig
+
+# Secrets patterns (do not commit)
+secrets*/
+secret*/
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+*.keystore
+*.der
+*.pkcs12
+
+# Container artifacts
+*.tar
+
+# Temporary files
+/tmp/
+**/tmp/
+
+# ===== Project-specific exclusions =====
+
+# Compiled binaries
+bin/chunker
+**/bin/chunker
+
+# Local database data directories (runtime data, not source)
+milvus/data/
+meilisearch/data/
+meilisearch/meilisearch
+meilisearch/meili.log
+meilisearch/meili.pid
+
+# Test files (download separately for testing)
+**/test_files/
+**/test-files/
+
+# Local development artifacts
+*.preview.txt
+fastmcp-server-docs/
+
+# Prompt previews
+*.preview.txt
+
+archived/
+
+agents/
+
+pipelines/
