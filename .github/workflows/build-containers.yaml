@@ -73,15 +73,7 @@ jobs:
           # Define all services with their build configurations
           # context: where to run docker build from
           # dockerfile: path to Containerfile relative to context
-          SERVICES='[
-            {"service":"chunker-service","context":"services/chunker_service","dockerfile":"Containerfile"},
-            {"service":"embedding-service","context":"services","dockerfile":"embedding_service/Containerfile"},
-            {"service":"evaluator-service","context":"services/evaluator_service","dockerfile":"Containerfile"},
-            {"service":"plan-service","context":"services/plan_service","dockerfile":"Containerfile"},
-            {"service":"rerank-service","context":"services","dockerfile":"rerank_service/Containerfile"},
-            {"service":"vector-gateway","context":"services","dockerfile":"vector_gateway/Containerfile"},
-            {"service":"retrieval-mcp","context":"retrieval-mcp","dockerfile":"Containerfile"}
-          ]'
+          SERVICES='[{"service":"chunker-service","context":"services/chunker_service","dockerfile":"Containerfile"},{"service":"embedding-service","context":"services","dockerfile":"embedding_service/Containerfile"},{"service":"evaluator-service","context":"services/evaluator_service","dockerfile":"Containerfile"},{"service":"plan-service","context":"services/plan_service","dockerfile":"Containerfile"},{"service":"rerank-service","context":"services","dockerfile":"rerank_service/Containerfile"},{"service":"vector-gateway","context":"services","dockerfile":"vector_gateway/Containerfile"},{"service":"retrieval-mcp","context":"retrieval-mcp","dockerfile":"Containerfile"}]'
 
           # For push to main or workflow_dispatch without service, build all
           if [[ "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then

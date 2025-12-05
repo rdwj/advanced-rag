@@ -39,15 +39,7 @@ jobs:
           TAG="${{ github.ref_name }}"
           
           # All services configuration
-          ALL_SERVICES='[
-            {"service":"chunker-service","context":"services/chunker_service","dockerfile":"Containerfile"},
-            {"service":"embedding-service","context":"services","dockerfile":"embedding_service/Containerfile"},
-            {"service":"evaluator-service","context":"services/evaluator_service","dockerfile":"Containerfile"},
-            {"service":"plan-service","context":"services/plan_service","dockerfile":"Containerfile"},
-            {"service":"rerank-service","context":"services","dockerfile":"rerank_service/Containerfile"},
-            {"service":"vector-gateway","context":"services","dockerfile":"vector_gateway/Containerfile"},
-            {"service":"retrieval-mcp","context":"retrieval-mcp","dockerfile":"Containerfile"}
-          ]'
+          ALL_SERVICES='[{"service":"chunker-service","context":"services/chunker_service","dockerfile":"Containerfile"},{"service":"embedding-service","context":"services","dockerfile":"embedding_service/Containerfile"},{"service":"evaluator-service","context":"services/evaluator_service","dockerfile":"Containerfile"},{"service":"plan-service","context":"services/plan_service","dockerfile":"Containerfile"},{"service":"rerank-service","context":"services","dockerfile":"rerank_service/Containerfile"},{"service":"vector-gateway","context":"services","dockerfile":"vector_gateway/Containerfile"},{"service":"retrieval-mcp","context":"retrieval-mcp","dockerfile":"Containerfile"}]'
           
           # Check if global release (just v*) or service-specific
           if [[ "$TAG" =~ ^v[0-9] ]]; then
