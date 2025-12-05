@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: embedding-service
-          image: ghcr.io/wjackson/advanced-rag/embedding-service:latest
+          image: ghcr.io/rdwj/advanced-rag/embedding-service:latest
           imagePullPolicy: Always
           ports:
             - name: http

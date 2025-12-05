@@ -51,13 +51,13 @@ make diff
 
 All images are built via GitHub Actions and pushed to GitHub Container Registry:
 
-- `ghcr.io/wjackson/advanced-rag/chunker-service:latest`
-- `ghcr.io/wjackson/advanced-rag/embedding-service:latest`
-- `ghcr.io/wjackson/advanced-rag/plan-service:latest`
-- `ghcr.io/wjackson/advanced-rag/evaluator-service:latest`
-- `ghcr.io/wjackson/advanced-rag/rerank-service:latest`
-- `ghcr.io/wjackson/advanced-rag/vector-gateway:latest`
-- `ghcr.io/wjackson/advanced-rag/retrieval-mcp:latest`
+- `ghcr.io/rdwj/advanced-rag/chunker-service:latest`
+- `ghcr.io/rdwj/advanced-rag/embedding-service:latest`
+- `ghcr.io/rdwj/advanced-rag/plan-service:latest`
+- `ghcr.io/rdwj/advanced-rag/evaluator-service:latest`
+- `ghcr.io/rdwj/advanced-rag/rerank-service:latest`
+- `ghcr.io/rdwj/advanced-rag/vector-gateway:latest`
+- `ghcr.io/rdwj/advanced-rag/retrieval-mcp:latest`
 
 Images are automatically built on push to `main` branch when service files change.
 

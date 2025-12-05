@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: plan-service
-          image: ghcr.io/wjackson/advanced-rag/plan-service:latest
+          image: ghcr.io/rdwj/advanced-rag/plan-service:latest
           imagePullPolicy: Always
           ports:
             - name: http

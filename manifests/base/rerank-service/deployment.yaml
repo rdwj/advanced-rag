@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: rerank-service
-          image: ghcr.io/wjackson/advanced-rag/rerank-service:latest
+          image: ghcr.io/rdwj/advanced-rag/rerank-service:latest
           imagePullPolicy: Always
           ports:
             - name: http

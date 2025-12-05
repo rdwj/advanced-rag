@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: evaluator-service
-          image: ghcr.io/wjackson/advanced-rag/evaluator-service:latest
+          image: ghcr.io/rdwj/advanced-rag/evaluator-service:latest
           imagePullPolicy: Always
           ports:
             - name: http

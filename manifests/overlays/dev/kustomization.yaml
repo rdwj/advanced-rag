@@ -5,8 +5,8 @@ kind: Kustomization
 resources:
   - ../../base
 
-# Namespace for this overlay
-namespace: advanced-rag
+# Namespace is set via: make deploy NAMESPACE=xxx
+# Don't hardcode here to allow flexibility
 
 # Common labels for this environment
 labels:
@@ -27,5 +27,5 @@ patches:
 
 # Images - can override tags here if needed
 # images:
-#   - name: ghcr.io/wjackson/advanced-rag/vector-gateway
+#   - name: ghcr.io/rdwj/advanced-rag/vector-gateway
 #     newTag: v1.0.0

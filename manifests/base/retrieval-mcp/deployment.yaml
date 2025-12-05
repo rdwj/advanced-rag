@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: retrieval-mcp
-          image: ghcr.io/wjackson/advanced-rag/retrieval-mcp:latest
+          image: ghcr.io/rdwj/advanced-rag/retrieval-mcp:latest
           imagePullPolicy: Always
           ports:
             - name: http

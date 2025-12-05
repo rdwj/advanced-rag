@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: vector-gateway
-          image: ghcr.io/wjackson/advanced-rag/vector-gateway:latest
+          image: ghcr.io/rdwj/advanced-rag/vector-gateway:latest
           imagePullPolicy: Always
           ports:
             - name: http

@@ -61,17 +61,17 @@ patches:
 
 # Override image tags for specific versions (recommended for production)
 images:
-  - name: ghcr.io/wjackson/advanced-rag/chunker-service
+  - name: ghcr.io/rdwj/advanced-rag/chunker-service
     newTag: v1.0.0
-  - name: ghcr.io/wjackson/advanced-rag/embedding-service
+  - name: ghcr.io/rdwj/advanced-rag/embedding-service
     newTag: v1.0.0
-  - name: ghcr.io/wjackson/advanced-rag/plan-service
+  - name: ghcr.io/rdwj/advanced-rag/plan-service
     newTag: v1.0.0
-  - name: ghcr.io/wjackson/advanced-rag/evaluator-service
+  - name: ghcr.io/rdwj/advanced-rag/evaluator-service
     newTag: v1.0.0
-  - name: ghcr.io/wjackson/advanced-rag/rerank-service
+  - name: ghcr.io/rdwj/advanced-rag/rerank-service
     newTag: v1.0.0
-  - name: ghcr.io/wjackson/advanced-rag/vector-gateway
+  - name: ghcr.io/rdwj/advanced-rag/vector-gateway
     newTag: v1.0.0
-  - name: ghcr.io/wjackson/advanced-rag/retrieval-mcp
+  - name: ghcr.io/rdwj/advanced-rag/retrieval-mcp
     newTag: v1.0.0

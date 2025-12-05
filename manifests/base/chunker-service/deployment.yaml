@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: chunker-service
-          image: ghcr.io/wjackson/advanced-rag/chunker-service:latest
+          image: ghcr.io/rdwj/advanced-rag/chunker-service:latest
           imagePullPolicy: Always
           ports:
             - name: http
