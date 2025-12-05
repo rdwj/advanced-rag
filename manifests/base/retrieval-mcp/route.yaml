@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: retrieval-mcp
+  labels:
+    app: retrieval-mcp
+    app.kubernetes.io/name: retrieval-mcp
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  to:
+    kind: Service
+    name: retrieval-mcp
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evaluator-service-config
+  labels:
+    app: evaluator-service
+    app.kubernetes.io/name: evaluator-service
+    app.kubernetes.io/part-of: advanced-rag
+data:
+  # LLM model for evaluation - override in overlays
+  OPENAI_EVAL_MODEL: "gpt-4o-mini"

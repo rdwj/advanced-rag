@@ -1,0 +1,77 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Reference the base
+resources:
+  - ../../base
+
+# Customer's namespace
+namespace: customer-rag
+
+# Common labels for this environment
+labels:
+  - pairs:
+      environment: production
+      customer: example-customer
+    includeSelectors: false
+
+# Patches to customize for customer environment
+patches:
+  # Use customer's Milvus instance
+  - target:
+      kind: ConfigMap
+      name: vector-gateway-config
+    patch: |-
+      - op: replace
+        path: /data/MILVUS_HOST
+        value: "milvus.customer-rag.svc.cluster.local"
+      - op: replace
+        path: /data/MILVUS_COLLECTION
+        value: "customer_docs"
+
+  # Customer uses self-hosted embedding model
+  - target:
+      kind: ConfigMap
+      name: embedding-service-config
+    patch: |-
+      - op: replace
+        path: /data/EMBEDDING_MODEL
+        value: "BAAI/bge-large-en-v1.5"
+
+  # Customer uses self-hosted reranker
+  - target:
+      kind: ConfigMap
+      name: rerank-service-config
+    patch: |-
+      - op: replace
+        path: /data/RERANK_PROVIDER
+        value: "caikit"
+      - op: replace
+        path: /data/RERANK_MODEL
+        value: "ms-marco-reranker"
+
+  # Customer uses local LLM for planning
+  - target:
+      kind: ConfigMap
+      name: plan-service-config
+    patch: |-
+      - op: replace
+        path: /data/PLAN_MODEL
+        value: "granite-3b-instruct"
+
+# Override image tags for specific versions (recommended for production)
+images:
+  - name: ghcr.io/wjackson/advanced-rag/chunker-service
+    newTag: v1.0.0
+  - name: ghcr.io/wjackson/advanced-rag/embedding-service
+    newTag: v1.0.0
+  - name: ghcr.io/wjackson/advanced-rag/plan-service
+    newTag: v1.0.0
+  - name: ghcr.io/wjackson/advanced-rag/evaluator-service
+    newTag: v1.0.0
+  - name: ghcr.io/wjackson/advanced-rag/rerank-service
+    newTag: v1.0.0
+  - name: ghcr.io/wjackson/advanced-rag/vector-gateway
+    newTag: v1.0.0
+  - name: ghcr.io/wjackson/advanced-rag/retrieval-mcp
+    newTag: v1.0.0

@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Reference the base
+resources:
+  - ../../base
+
+# Namespace for this overlay
+namespace: advanced-rag
+
+# Common labels for this environment
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+
+# Patches to customize for dev environment
+patches:
+  # Patch vector-gateway config for dev Milvus
+  - target:
+      kind: ConfigMap
+      name: vector-gateway-config
+    patch: |-
+      - op: replace
+        path: /data/MILVUS_HOST
+        value: "milvus.advanced-rag.svc.cluster.local"
+
+# Images - can override tags here if needed
+# images:
+#   - name: ghcr.io/wjackson/advanced-rag/vector-gateway
+#     newTag: v1.0.0

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: embedding-service-config
+  labels:
+    app: embedding-service
+    app.kubernetes.io/name: embedding-service
+    app.kubernetes.io/part-of: advanced-rag
+data:
+  # Default configuration - override in overlays
+  EMBEDDING_MODEL: "text-embedding-3-small"
+  EMBEDDING_MAX_BATCH: "64"
