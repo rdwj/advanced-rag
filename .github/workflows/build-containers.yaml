@@ -61,6 +61,8 @@ jobs:
 
       - name: Detect changes and build matrix
         id: set-matrix
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # If manual dispatch with specific service, only build that
           if [[ -n "${{ github.event.inputs.service }}" ]]; then
@@ -90,9 +92,8 @@ jobs:
           # For PRs, check which services have changes
           CHANGED_SERVICES="[]"
           
-          # Get changed files
-          git fetch origin ${{ github.base_ref }} --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          # Get changed files using GitHub API (more reliable for PRs)
+          CHANGED_FILES=$(gh pr view ${{ github.event.pull_request.number }} --json files -q '.files[].path')
           
           # Check each service for changes
           for row in $(echo "$SERVICES" | jq -c '.[]'); do
