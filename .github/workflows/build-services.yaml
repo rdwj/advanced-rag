@@ -1,0 +1,260 @@
+name: Build and Push Services
+
+on:
+  push:
+    branches: [main, 'feature/ci-kustomize-deployment']
+    paths:
+      - 'services/**'
+      - 'retrieval-mcp/**'
+      - '.github/workflows/build-services.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'retrieval-mcp/**'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to build (or "all")'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chunker-service
+          - plan-service
+          - evaluator-service
+          - embedding-service
+          - rerank-service
+          - vector-gateway
+          - retrieval-mcp
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  # Determine which services changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      chunker: ${{ steps.filter.outputs.chunker }}
+      plan: ${{ steps.filter.outputs.plan }}
+      evaluator: ${{ steps.filter.outputs.evaluator }}
+      embedding: ${{ steps.filter.outputs.embedding }}
+      rerank: ${{ steps.filter.outputs.rerank }}
+      vector-gateway: ${{ steps.filter.outputs.vector-gateway }}
+      retrieval-mcp: ${{ steps.filter.outputs.retrieval-mcp }}
+      rag-core: ${{ steps.filter.outputs.rag-core }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            chunker:
+              - 'services/chunker_service/**'
+            plan:
+              - 'services/plan_service/**'
+            evaluator:
+              - 'services/evaluator_service/**'
+            embedding:
+              - 'services/embedding_service/**'
+            rerank:
+              - 'services/rerank_service/**'
+            vector-gateway:
+              - 'services/vector_gateway/**'
+            retrieval-mcp:
+              - 'retrieval-mcp/**'
+            rag-core:
+              - 'services/rag_core/**'
+
+  # Self-contained services (no rag_core dependency)
+  build-self-contained:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.chunker == 'true' ||
+      needs.changes.outputs.plan == 'true' ||
+      needs.changes.outputs.evaluator == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: chunker-service
+            context: services/chunker_service
+            dockerfile: services/chunker_service/Containerfile
+            changed: ${{ needs.changes.outputs.chunker }}
+          - name: plan-service
+            context: services/plan_service
+            dockerfile: services/plan_service/Containerfile
+            changed: ${{ needs.changes.outputs.plan }}
+          - name: evaluator-service
+            context: services/evaluator_service
+            dockerfile: services/evaluator_service/Containerfile
+            changed: ${{ needs.changes.outputs.evaluator }}
+    steps:
+      - name: Skip if unchanged
+        if: |
+          github.event_name != 'workflow_dispatch' &&
+          matrix.changed != 'true'
+        run: echo "Skipping ${{ matrix.name }} - no changes"
+
+      - uses: actions/checkout@v4
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          (github.event.inputs.service == 'all' || github.event.inputs.service == matrix.name) ||
+          matrix.changed == 'true'
+
+      - name: Set up Docker Buildx
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          (github.event.inputs.service == 'all' || github.event.inputs.service == matrix.name) ||
+          matrix.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: |
+          github.event_name != 'pull_request' &&
+          (github.event_name == 'workflow_dispatch' &&
+          (github.event.inputs.service == 'all' || github.event.inputs.service == matrix.name) ||
+          matrix.changed == 'true')
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.name }}
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          (github.event.inputs.service == 'all' || github.event.inputs.service == matrix.name) ||
+          matrix.changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:latest
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Root-context services (depend on rag_core)
+  build-root-context:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.embedding == 'true' ||
+      needs.changes.outputs.rerank == 'true' ||
+      needs.changes.outputs.vector-gateway == 'true' ||
+      needs.changes.outputs.rag-core == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: embedding-service
+            service_dir: embedding_service
+            changed: ${{ needs.changes.outputs.embedding }}
+          - name: rerank-service
+            service_dir: rerank_service
+            changed: ${{ needs.changes.outputs.rerank }}
+          - name: vector-gateway
+            service_dir: vector_gateway
+            changed: ${{ needs.changes.outputs.vector-gateway }}
+    steps:
+      - name: Check if should build
+        id: should-build
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.service }}" == "all" || "${{ github.event.inputs.service }}" == "${{ matrix.name }}" ]]; then
+              echo "build=true" >> $GITHUB_OUTPUT
+            else
+              echo "build=false" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "${{ matrix.changed }}" == "true" || "${{ needs.changes.outputs.rag-core }}" == "true" ]]; then
+            echo "build=true" >> $GITHUB_OUTPUT
+          else
+            echo "build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.should-build.outputs.build == 'true'
+
+      - name: Set up Docker Buildx
+        if: steps.should-build.outputs.build == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: steps.should-build.outputs.build == 'true' && github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare build context for ${{ matrix.name }}
+        if: steps.should-build.outputs.build == 'true'
+        run: |
+          # Create build context with rag_core and service directory
+          mkdir -p build-context
+          cp -r services/rag_core build-context/
+          cp -r services/${{ matrix.service_dir }} build-context/
+          cp services/${{ matrix.service_dir }}/Containerfile build-context/Containerfile
+
+      - name: Build and push ${{ matrix.name }}
+        if: steps.should-build.outputs.build == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: build-context
+          file: build-context/Containerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:latest
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Retrieval MCP (standalone)
+  build-retrieval-mcp:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.service == 'all' || github.event.inputs.service == 'retrieval-mcp') ||
+      needs.changes.outputs.retrieval-mcp == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push retrieval-mcp
+        uses: docker/build-push-action@v5
+        with:
+          context: retrieval-mcp
+          file: retrieval-mcp/Containerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/retrieval-mcp:latest
+            ${{ env.IMAGE_PREFIX }}/retrieval-mcp:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64

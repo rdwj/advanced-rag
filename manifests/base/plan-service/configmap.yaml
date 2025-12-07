@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plan-service-config
+  labels:
+    app: plan-service
+    app.kubernetes.io/name: plan-service
+    app.kubernetes.io/part-of: advanced-rag
+data:
+  # LLM model for plan generation - override in overlays
+  PLAN_MODEL: "gpt-4o-mini"

@@ -1,13 +1,15 @@
 #!/bin/bash
-# Simple deployment script for MCP server to OpenShift
-# Usage: ./deploy.sh [project-name]
+# Deployment script for retrieval-mcp
+#
+# This script deploys using the centralized Kustomize manifests.
+# For full deployment of all services, use: cd ../manifests && make deploy
 
 set -e
 
-PROJECT=${1:-mcp-demo}
+PROJECT=${1:-advanced-rag}
 
 echo "========================================="
-echo "MCP Server Deployment to OpenShift"
+echo "Retrieval MCP Deployment"
 echo "========================================="
 echo "Project: $PROJECT"
 echo ""
@@ -18,47 +20,29 @@ if ! oc whoami &>/dev/null; then
     exit 1
 fi
 
-# Create project if it doesn't exist
-echo "→ Setting up project..."
-if oc project $PROJECT &>/dev/null; then
-    echo "  Using existing project: $PROJECT"
-else
-    echo "  Creating new project: $PROJECT"
-    oc new-project $PROJECT
+# Check namespace exists
+if ! oc get namespace "$PROJECT" &>/dev/null; then
+    echo "Creating namespace: $PROJECT"
+    oc new-project "$PROJECT"
 fi
 
-# Apply OpenShift resources
-echo "→ Applying OpenShift resources..."
-sed "s|image: mcp-server:latest|image: image-registry.openshift-image-registry.svc:5000/$PROJECT/mcp-server:latest|g" openshift.yaml | oc apply -f - -n $PROJECT
+# Deploy using kustomize from the centralized manifests
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MANIFESTS_DIR="$SCRIPT_DIR/../manifests"
 
-# Start build
-echo "→ Building container image..."
-echo "  Creating filtered build context..."
-
-# Create a temporary directory for the build context
-BUILD_DIR=$(mktemp -d)
-trap "rm -rf $BUILD_DIR" EXIT
-
-# Copy only necessary files (exclude __pycache__ and .pyc files)
-cp Containerfile requirements.txt pyproject.toml "$BUILD_DIR/"
-
-# Use rsync to copy src/ while excluding cache files
-rsync -a --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' --exclude='.mypy_cache' src/ "$BUILD_DIR/src/"
-
-echo "  Starting binary build with filtered context..."
-oc start-build mcp-server --from-dir="$BUILD_DIR" --follow -n $PROJECT
+echo "Deploying retrieval-mcp from centralized manifests..."
+oc apply -k "$MANIFESTS_DIR/base/retrieval-mcp" -n "$PROJECT"
 
 # Wait for rollout
-echo "→ Deploying application..."
-oc rollout restart deployment/mcp-server -n $PROJECT 2>/dev/null || true
-oc rollout status deployment/mcp-server -n $PROJECT --timeout=300s
+echo "Waiting for deployment..."
+oc rollout status deployment/retrieval-mcp -n "$PROJECT" --timeout=120s
 
 # Get route
-ROUTE=$(oc get route mcp-server -n $PROJECT -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+ROUTE=$(oc get route retrieval-mcp -n "$PROJECT" -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
 
 echo ""
 echo "========================================="
-echo "✅ Deployment Complete!"
+echo "Deployment Complete!"
 echo "========================================="
 if [ -n "$ROUTE" ]; then
     echo "MCP Server URL: https://$ROUTE/mcp/"
@@ -68,4 +52,7 @@ if [ -n "$ROUTE" ]; then
 else
     echo "Warning: Could not retrieve route URL"
 fi
+echo ""
+echo "Note: For full stack deployment, use:"
+echo "  cd ../manifests && make deploy"
 echo "========================================="

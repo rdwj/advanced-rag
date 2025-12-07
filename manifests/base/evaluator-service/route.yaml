@@ -1,0 +1,19 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: evaluator-service
+  labels:
+    app: evaluator-service
+    app.kubernetes.io/name: evaluator-service
+    app.kubernetes.io/part-of: advanced-rag
+  annotations:
+    haproxy.router.openshift.io/timeout: 120s
+spec:
+  to:
+    kind: Service
+    name: evaluator-service
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: evaluator-service
+  labels:
+    app: evaluator-service
+    app.kubernetes.io/name: evaluator-service
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: evaluator-service

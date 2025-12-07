@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-gateway-config
+  labels:
+    app: vector-gateway
+    app.kubernetes.io/name: vector-gateway
+    app.kubernetes.io/part-of: advanced-rag
+data:
+  # Backend configuration
+  GATEWAY_BACKEND: "milvus"
+  GATEWAY_REQUIRE_BACKEND: "1"
+  GATEWAY_MAX_DOCS: "100000"
+
+  # Milvus connection - override in overlays for your cluster
+  # Default assumes Milvus deployed in same namespace via Helm
+  MILVUS_HOST: "milvus.advanced-rag.svc.cluster.local"
+  MILVUS_PORT: "19530"
+  MILVUS_COLLECTION: "rag_gateway"
+  MILVUS_DIM: "1536"
+
+  # Embedding model settings
+  EMBEDDING_MODEL: "text-embedding-3-small"
+
+  # Optional: Use embedding service instead of direct OpenAI
+  # EMBEDDING_SERVICE_URL: "http://embedding-service.advanced-rag.svc.cluster.local:8000"
