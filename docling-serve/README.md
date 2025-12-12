@@ -112,14 +112,14 @@ oc apply -k manifests/overlays/my-namespace
 
 ## CPU vs GPU Comparison
 
-| Aspect | CPU Overlay | GPU Overlay |
-|--------|-------------|-------------|
-| Image | `docling-serve-cpu` | `docling-serve-cu126` |
-| Memory | 4-8Gi | 8-16Gi |
-| GPU | None | 1x nvidia.com/gpu |
-| VLM Support | No | Yes (remote services enabled) |
-| Route Timeout | 300s | 600s |
-| Use Case | Dev/test, simple text PDFs | Production, image descriptions |
+| Aspect        | CPU Overlay                | GPU Overlay                    |
+| ------------- | -------------------------- | ------------------------------ |
+| Image         | `docling-serve-cpu`      | `docling-serve-cu126`        |
+| Memory        | 4-8Gi                      | 8-16Gi                         |
+| GPU           | None                       | 1x nvidia.com/gpu              |
+| VLM Support   | No                         | Yes (remote services enabled)  |
+| Route Timeout | 300s                       | 600s                           |
+| Use Case      | Dev/test, simple text PDFs | Production, image descriptions |
 
 ## Usage
 
@@ -176,44 +176,44 @@ curl -s "${DOCLING_HOST}/v1/result/${TASK_ID}" > result.json
 
 ### Conversion Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `files` | File | Document to convert |
-| `from_formats` | String | Input: `pdf`, `docx`, `pptx`, `html`, `image` |
-| `to_formats` | String | Output: `md`, `json`, `html`, `text`, `doctags` |
-| `page_range` | Tuple | Page range (e.g., `1`, `10`) |
-| `include_images` | Boolean | Include base64 images |
-| `do_picture_description` | Boolean | Generate AI descriptions |
-| `picture_description_api` | JSON | VLM API configuration |
-| `do_ocr` | Boolean | Enable OCR |
-| `do_table_structure` | Boolean | Detect tables |
+| Parameter                   | Type    | Description                                              |
+| --------------------------- | ------- | -------------------------------------------------------- |
+| `files`                   | File    | Document to convert                                      |
+| `from_formats`            | String  | Input:`pdf`, `docx`, `pptx`, `html`, `image`   |
+| `to_formats`              | String  | Output:`md`, `json`, `html`, `text`, `doctags` |
+| `page_range`              | Tuple   | Page range (e.g.,`1`, `10`)                          |
+| `include_images`          | Boolean | Include base64 images                                    |
+| `do_picture_description`  | Boolean | Generate AI descriptions                                 |
+| `picture_description_api` | JSON    | VLM API configuration                                    |
+| `do_ocr`                  | Boolean | Enable OCR                                               |
+| `do_table_structure`      | Boolean | Detect tables                                            |
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DOCLING_SERVE_ENABLE_UI` | `true` | Enable Swagger UI |
+| Variable                                 | Default   | Description                                  |
+| ---------------------------------------- | --------- | -------------------------------------------- |
+| `DOCLING_SERVE_ENABLE_UI`              | `true`  | Enable Swagger UI                            |
 | `DOCLING_SERVE_ENABLE_REMOTE_SERVICES` | `false` | Enable VLM calls (GPU overlay sets `true`) |
 
 ### Resource Requirements
 
 | Overlay | CPU | Memory | GPU |
-|---------|-----|--------|-----|
-| CPU | 1-4 | 4-8Gi | - |
-| GPU | 1-4 | 8-16Gi | 1 |
+| ------- | --- | ------ | --- |
+| CPU     | 1-4 | 4-8Gi  | -   |
+| GPU     | 1-4 | 8-16Gi | 1   |
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/v1/convert/file` | POST | Sync conversion |
-| `/v1/convert/file/async` | POST | Async conversion |
-| `/v1/status/poll/{task_id}` | GET | Poll task status |
-| `/v1/result/{task_id}` | GET | Get result |
-| `/openapi.json` | GET | API spec |
+| Endpoint                      | Method | Description      |
+| ----------------------------- | ------ | ---------------- |
+| `/health`                   | GET    | Health check     |
+| `/v1/convert/file`          | POST   | Sync conversion  |
+| `/v1/convert/file/async`    | POST   | Async conversion |
+| `/v1/status/poll/{task_id}` | GET    | Poll task status |
+| `/v1/result/{task_id}`      | GET    | Get result       |
+| `/openapi.json`             | GET    | API spec         |
 
 ## Production Hardening
 
@@ -271,17 +271,20 @@ spec:
 ## Troubleshooting
 
 ### Pod Pending
+
 ```bash
 # Check GPU availability
 oc get nodes -l node-role.kubernetes.io/worker-gpu -o custom-columns=NAME:.metadata.name,GPU:.status.allocatable."nvidia\.com/gpu"
 ```
 
 ### Picture Descriptions Not Working
+
 1. Verify `DOCLING_SERVE_ENABLE_REMOTE_SERVICES=true` (GPU overlay)
 2. Check granite-vision is deployed and healthy
 3. Use internal DNS: `http://granite-vision.<namespace>.svc.cluster.local:8000`
 
 ### Logs
+
 ```bash
 oc logs -f deployment/docling-serve -n docling-serve
 ```
@@ -290,9 +293,9 @@ oc logs -f deployment/docling-serve -n docling-serve
 
 ### Internal Service URLs
 
-| Service | URL |
-|---------|-----|
-| docling-serve | `http://docling-serve.docling-serve.svc.cluster.local:5001` |
+| Service        | URL                                                             |
+| -------------- | --------------------------------------------------------------- |
+| docling-serve  | `http://docling-serve.docling-serve.svc.cluster.local:5001`   |
 | granite-vision | `http://granite-vision.granite-vision.svc.cluster.local:8000` |
 
 ### Workflow
@@ -312,5 +315,6 @@ oc logs -f deployment/docling-serve -n docling-serve
 ## License
 
 Refer to respective licenses:
+
 - [Docling](https://github.com/DS4SD/docling)
 - [IBM Granite Models](https://huggingface.co/ibm-granite)
