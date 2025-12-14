@@ -70,17 +70,25 @@ See [openshift/OPENSHIFT_DEPLOYMENT.md](openshift/OPENSHIFT_DEPLOYMENT.md) for d
 ### Quick Deploy
 
 ```bash
+# Set your namespace
+NAMESPACE=milvus  # Change to your desired namespace
+
 # Using Helm (recommended for production)
 helm repo add milvus https://zilliztech.github.io/milvus-helm/
 helm repo update
 
+# Grant SCCs before deploying
+oc create namespace $NAMESPACE
+oc adm policy add-scc-to-user anyuid -z default -n $NAMESPACE
+oc adm policy add-scc-to-user anyuid -z milvus-minio -n $NAMESPACE
+
 # Install with OpenShift values
 helm install milvus milvus/milvus \
   -f openshift/values-openshift.yaml \
-  -n milvus --create-namespace
+  -n $NAMESPACE
 
 # Wait for pods
-oc wait --for=condition=Ready pods -l app.kubernetes.io/name=milvus -n milvus --timeout=300s
+oc wait --for=condition=Ready pods -l app.kubernetes.io/name=milvus -n $NAMESPACE --timeout=300s
 ```
 
 ### Connection from Applications
@@ -91,8 +99,8 @@ from pymilvus import connections
 # Local
 connections.connect(host="localhost", port="19530")
 
-# OpenShift (internal)
-connections.connect(host="milvus.milvus.svc.cluster.local", port="19530")
+# OpenShift (internal) - replace <namespace> with your namespace
+connections.connect(host="milvus.<namespace>.svc.cluster.local", port="19530")
 ```
 
 ## Usage Example

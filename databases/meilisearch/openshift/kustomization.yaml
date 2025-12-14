@@ -3,20 +3,16 @@ kind: Kustomization
 
 # Meilisearch for vector/hybrid search
 #
-# Deploy to advanced-rag namespace:
-#   oc adm policy add-scc-to-user anyuid -z default -n advanced-rag
-#   oc apply -k databases/meilisearch/openshift/ -n advanced-rag
+# Deploy to your namespace:
+#   NAMESPACE=meilisearch  # Change to your desired namespace
+#   oc create namespace $NAMESPACE
+#   oc adm policy add-scc-to-user anyuid -z default -n $NAMESPACE
+#   oc apply -k databases/meilisearch/openshift/ -n $NAMESPACE
 #
-# Deploy to a different namespace (for testing):
-#   oc new-project meilisearch-test
-#   oc adm policy add-scc-to-user anyuid -z default -n meilisearch-test
-#   oc apply -k databases/meilisearch/openshift/ -n meilisearch-test
-#
-# The namespace is NOT hardcoded here, allowing deployment to any namespace:
-#   oc apply -k databases/meilisearch/openshift/ -n your-namespace
+# The namespace is NOT hardcoded here, allowing deployment to any namespace.
 #
 # After deployment, enable vector search:
-#   MEILI_URL=$(oc get route meilisearch -o jsonpath='{.spec.host}' -n <namespace>)
+#   MEILI_URL=$(oc get route meilisearch -o jsonpath='{.spec.host}' -n $NAMESPACE)
 #   curl -X PATCH "https://${MEILI_URL}/experimental-features/" \
 #     -H 'Authorization: Bearer changeme-in-production' \
 #     -H 'Content-Type: application/json' \

@@ -3,18 +3,12 @@ kind: Kustomization
 
 # PGVector (PostgreSQL + pgvector extension) for vector storage
 #
-# Deploy to advanced-rag namespace:
-#   oc apply -k databases/pgvector/openshift/
+# Deploy to your namespace:
+#   NAMESPACE=pgvector  # Change to your desired namespace
+#   oc create namespace $NAMESPACE
+#   oc apply -k databases/pgvector/openshift/ -n $NAMESPACE
 #
-# Deploy to a different namespace (for testing):
-#   oc new-project pgvector-test
-#   oc apply -k databases/pgvector/openshift/ -n pgvector-test
-#
-# The namespace is NOT hardcoded here, allowing deployment to any namespace:
-#   oc apply -k databases/pgvector/openshift/ -n your-namespace
-#
-# If you want to enforce a specific namespace, uncomment:
-# namespace: advanced-rag
+# The namespace is NOT hardcoded here, allowing deployment to any namespace.
 
 resources:
   - secret.yaml
