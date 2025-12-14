@@ -1,0 +1,39 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  annotations:
+    openshift.io/display-name: whisper-large-FP8
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    networking.kserve.io/visibility: exposed
+    opendatahub.io/dashboard: "true"
+  name: whisper-large-fp8
+  namespace: models
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    model:
+      modelFormat:
+        name: vLLM
+      runtime: vllm-rhaiis-whisper
+      storageUri: oci://quay.io/wjackson/models:redhatai-whisper-large-v3-turbo-FP8-dynamic
+      args:
+      - --max-model-len=448
+      - --max-num-seqs=400
+      - --limit-mm-per-prompt
+      - '{"audio": 1}'
+      - --enforce-eager
+      resources:
+        requests:
+          cpu: "2"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "4"
+          memory: 10Gi
+          nvidia.com/gpu: "1"
+    tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
