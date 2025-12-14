@@ -1,0 +1,88 @@
+# Redis Deployment for OpenShift
+# Uses Bitnami Redis image which supports arbitrary UIDs
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Required for single-instance with PVC
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/part-of: advanced-rag
+    spec:
+      containers:
+        - name: redis
+          # Bitnami Redis supports arbitrary UIDs for OpenShift compatibility
+          # See https://hub.docker.com/r/bitnami/redis/tags for available versions
+          image: docker.io/bitnami/redis:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: REDIS_PASSWORD
+            # Bitnami-specific settings
+            - name: REDIS_AOF_ENABLED
+              value: "yes"
+            - name: REDIS_RDB_POLICY_DISABLED
+              value: "no"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/redis/data
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep -q PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+      restartPolicy: Always
