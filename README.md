@@ -134,26 +134,29 @@ The RAG pipeline requires embedding models and optionally an LLM for plan genera
 
 #### 3.1 Caikit Embeddings & Reranker
 
-Deploy embedding and reranking models using OpenShift AI with the Caikit runtime:
+Deploy embedding and reranking models using OpenShift AI with the Caikit runtime.
+
+**Prerequisites**: Models must be bootstrapped and uploaded to S3 storage first. See the detailed README for the full workflow including S3 setup.
 
 ```bash
-# Create namespace
-oc new-project caikit-embeddings
+cd models/caikit-embeddings
 
-# Deploy Granite embedding model (768 dimensions)
-oc apply -k models/caikit-embeddings/manifests/granite-embedding
+# Deploy all three models (creates namespace, applies manifests, waits for ready)
+make deploy-all
 
-# Deploy MiniLM embedding model (384 dimensions) - optional, lighter weight
-oc apply -k models/caikit-embeddings/manifests/minilm-embedding
+# Or deploy individually:
+make deploy-granite    # Granite embedding (768 dimensions)
+make deploy-minilm     # MiniLM embedding (384 dimensions, lighter)
+make deploy-reranker   # MS-Marco reranker
 
-# Deploy MS-Marco reranker
-oc apply -k models/caikit-embeddings/manifests/reranker
+# Check status
+make status
 
-# Wait for pods
-oc wait --for=condition=Ready pods -l app=granite-embedding -n caikit-embeddings --timeout=300s
+# Test endpoints
+make test-all
 ```
 
-See [models/caikit-embeddings/README.md](models/caikit-embeddings/README.md) for detailed instructions and API usage.
+See [models/caikit-embeddings/README.md](models/caikit-embeddings/README.md) for the complete deployment workflow including model bootstrapping and S3 upload.
 
 #### 3.2 GPT-OSS LLM (Optional)
 
