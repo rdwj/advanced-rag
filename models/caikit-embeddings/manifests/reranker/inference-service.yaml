@@ -16,7 +16,9 @@ spec:
       runtime: caikit-standalone-runtime
       storage:
         key: aws-connection-model-storage
-        path: reranker-models
+        # Parent folder containing ms-marco-reranker subfolder
+        # Caikit requires: parent-folder/model-name/config.yml structure
+        path: models
     resources:
       requests:
         cpu: "1"

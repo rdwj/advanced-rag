@@ -6,11 +6,18 @@ This directory contains deployment configuration for self-hosted embedding and r
 
 ## Deployed Models
 
-| Model | Type | Parameters | Dimensions | Max Tokens | Endpoint |
-|-------|------|------------|------------|------------|----------|
-| `ibm-granite/granite-embedding-278m-multilingual` | Embedding | 278M | 768 | 512 | `https://granite-embedding-278m-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com` |
-| `sentence-transformers/all-MiniLM-L6-v2` | Embedding | 22.7M | 384 | 256 | `https://all-minilm-l6-v2-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com` |
-| `cross-encoder/ms-marco-MiniLM-L12-v2` | Cross-Encoder | 33.4M | N/A | 512 | `https://ms-marco-reranker-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com` |
+| Model | Type | Parameters | Dimensions | Max Tokens | Route Name |
+|-------|------|------------|------------|------------|------------|
+| `ibm-granite/granite-embedding-278m-multilingual` | Embedding | 278M | 768 | 512 | `granite-embedding-278m` |
+| `sentence-transformers/all-MiniLM-L6-v2` | Embedding | 22.7M | 384 | 256 | `all-minilm-l6-v2` |
+| `cross-encoder/ms-marco-MiniLM-L12-v2` | Cross-Encoder | 33.4M | N/A | 512 | `ms-marco-reranker` |
+
+**Endpoint Pattern**: `https://<route-name>-<namespace>.apps.<cluster-domain>`
+
+To get your cluster domain:
+```bash
+oc get ingresses.config/cluster -o jsonpath='{.spec.domain}'
+```
 
 ## Architecture
 
@@ -61,9 +68,19 @@ caikit-embeddings/
 ## Storage Configuration
 
 ### Noobaa ObjectBucketClaim
-- **Bucket**: `model-storage-fd83a868-2120-4822-90af-e998f8203992`
-- **S3 Endpoint**: `https://s3-openshift-storage.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com`
+- **Bucket**: Created via ObjectBucketClaim (name varies per cluster)
+- **S3 Endpoint**: `https://s3-openshift-storage.apps.<cluster-domain>`
 - **Secret**: `aws-connection-model-storage` (in caikit-embeddings namespace)
+
+To get your S3 endpoint and credentials from an existing ObjectBucketClaim:
+```bash
+# Get the bucket name
+oc get obc -n openshift-storage -o jsonpath='{.items[0].spec.bucketName}'
+
+# Get S3 credentials from the generated secret
+oc get secret <obc-name> -n openshift-storage -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d
+oc get secret <obc-name> -n openshift-storage -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d
+```
 
 ### S3 Model Structure
 
@@ -237,7 +254,10 @@ oc apply -f manifests/reranker/service.yaml -n caikit-embeddings
 ### Embedding Endpoint (`/api/v1/task/embedding`)
 
 ```bash
-curl -X POST "https://granite-embedding-278m-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com/api/v1/task/embedding" \
+# Get your endpoint URL
+GRANITE_URL=$(oc get route granite-embedding-278m -n caikit-embeddings -o jsonpath='https://{.spec.host}')
+
+curl -X POST "${GRANITE_URL}/api/v1/task/embedding" \
   -H "Content-Type: application/json" \
   -d '{"model_id": "granite-embedding-278m", "inputs": "Your text here"}'
 ```
@@ -262,15 +282,18 @@ curl -X POST "https://granite-embedding-278m-caikit-embeddings.apps.cluster-mqww
 ### Python Client
 
 ```python
+import os
 import requests
 
-EMBEDDING_URL = "https://granite-embedding-278m-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com/api/v1/task/embedding"
+# Set via environment or replace with your route URL
+EMBEDDING_URL = os.getenv("GRANITE_EMBEDDING_URL", "https://granite-embedding-278m-caikit-embeddings.apps.<cluster-domain>")
+EMBEDDING_URL += "/api/v1/task/embedding"
 
 def get_embedding(text: str) -> list[float]:
     response = requests.post(
         EMBEDDING_URL,
         json={"model_id": "granite-embedding-278m", "inputs": text},
-        verify=False
+        verify=False  # Set to True in production with proper certs
     )
     return response.json()["result"]["data"]["values"]
 
@@ -282,7 +305,10 @@ print(f"Embedding dimension: {len(embedding)}")  # 768
 ### MiniLM Embedding Endpoint
 
 ```bash
-curl -X POST "https://all-minilm-l6-v2-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com/api/v1/task/embedding" \
+# Get your endpoint URL
+MINILM_URL=$(oc get route all-minilm-l6-v2 -n caikit-embeddings -o jsonpath='https://{.spec.host}')
+
+curl -X POST "${MINILM_URL}/api/v1/task/embedding" \
   -H "Content-Type: application/json" \
   -d '{"model_id": "all-minilm-l6-v2", "inputs": "Your text here"}'
 ```
@@ -292,15 +318,18 @@ curl -X POST "https://all-minilm-l6-v2-caikit-embeddings.apps.cluster-mqwwr.mqww
 ### Python MiniLM Client
 
 ```python
+import os
 import requests
 
-MINILM_URL = "https://all-minilm-l6-v2-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com/api/v1/task/embedding"
+# Set via environment or replace with your route URL
+MINILM_URL = os.getenv("MINILM_EMBEDDING_URL", "https://all-minilm-l6-v2-caikit-embeddings.apps.<cluster-domain>")
+MINILM_URL += "/api/v1/task/embedding"
 
 def get_minilm_embedding(text: str) -> list[float]:
     response = requests.post(
         MINILM_URL,
         json={"model_id": "all-minilm-l6-v2", "inputs": text},
-        verify=False
+        verify=False  # Set to True in production with proper certs
     )
     return response.json()["result"]["data"]["values"]
 
@@ -312,7 +341,10 @@ print(f"Embedding dimension: {len(embedding)}")  # 384
 ### Reranker Endpoint (`/api/v1/task/rerank`)
 
 ```bash
-curl -X POST "https://ms-marco-reranker-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com/api/v1/task/rerank" \
+# Get your endpoint URL
+RERANKER_URL=$(oc get route ms-marco-reranker -n caikit-embeddings -o jsonpath='https://{.spec.host}')
+
+curl -X POST "${RERANKER_URL}/api/v1/task/rerank" \
   -H "Content-Type: application/json" \
   -d '{
     "model_id": "ms-marco-reranker",
@@ -370,9 +402,12 @@ curl -X POST "https://ms-marco-reranker-caikit-embeddings.apps.cluster-mqwwr.mqw
 ### Python Reranker Client
 
 ```python
+import os
 import requests
 
-RERANK_URL = "https://ms-marco-reranker-caikit-embeddings.apps.cluster-mqwwr.mqwwr.sandbox1259.opentlc.com/api/v1/task/rerank"
+# Set via environment or replace with your route URL
+RERANK_URL = os.getenv("RERANKER_URL", "https://ms-marco-reranker-caikit-embeddings.apps.<cluster-domain>")
+RERANK_URL += "/api/v1/task/rerank"
 
 def rerank_documents(query: str, documents: list[str], top_n: int = None) -> list[dict]:
     """Rerank documents by relevance to query. Returns sorted by score (highest first)."""
@@ -390,7 +425,7 @@ def rerank_documents(query: str, documents: list[str], top_n: int = None) -> lis
     if top_n:
         payload["parameters"]["top_n"] = top_n
 
-    response = requests.post(RERANK_URL, json=payload, verify=False)
+    response = requests.post(RERANK_URL, json=payload, verify=False)  # Set verify=True in production
     return response.json()["result"]["scores"]
 
 # Example
@@ -409,15 +444,57 @@ for r in results:
 ### Model Not Loading
 
 If you see errors like `FileNotFoundError: Module load path does not contain a config.yml file`:
+
 1. Check S3 structure - model must be nested: `s3://bucket/models/model-name/config.yml`
 2. InferenceService `storage.path` should be the parent folder (`models`), not the full path
+
+### Storage Path Mismatch ("No model found")
+
+If you see `RuntimeError: Failed to fetch model. No model found in <path>`:
+
+1. Check the InferenceService `storage.path` matches where you uploaded the model
+2. Verify the S3 structure:
+
+```bash
+# List your bucket contents to see actual paths
+oc exec -n minio-storage deploy/minio -- mc ls -r myminio/model-storage/
+```
+
+3. The manifest path should be the PARENT folder, not the model folder:
+   - Upload to: `s3://bucket/granite-models/granite-embedding-278m/`
+   - Manifest: `storage.path: granite-models`
+
+### No S3/ODF Storage Available
+
+If your cluster doesn't have ODF (Noobaa) installed, you can deploy minio for model storage:
+
+```bash
+# Check if minio is already available
+oc get svc -A | grep minio
+
+# If not, deploy minio (see your cluster administrator)
+# Then create a data connection secret:
+oc create secret generic aws-connection-model-storage \
+  --from-literal=AWS_ACCESS_KEY_ID=<access-key> \
+  --from-literal=AWS_SECRET_ACCESS_KEY=<secret-key> \
+  --from-literal=AWS_S3_ENDPOINT=<minio-endpoint> \
+  --from-literal=AWS_S3_BUCKET=<bucket-name> \
+  --from-literal=AWS_DEFAULT_REGION=us-east-1 \
+  -n caikit-embeddings
+```
 
 ### Pod Stuck in Init
 
 Check storage initializer logs:
+
 ```bash
 oc logs <pod-name> -c storage-initializer -n caikit-embeddings
 ```
+
+Common issues:
+- SSL certificate errors: Check `AWS_S3_ENDPOINT` uses correct protocol
+- Access denied: Verify credentials in the data connection secret
+- Bucket not found: Ensure the bucket exists and is accessible
 
 ### Version Mismatch Warning
 
