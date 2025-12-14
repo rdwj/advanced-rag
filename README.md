@@ -188,6 +188,11 @@ Choose one of the supported vector stores. **Milvus is recommended** for its nat
 #### Option A: Milvus (Recommended)
 
 ```bash
+# Create namespace and grant SCC
+oc new-project milvus
+oc adm policy add-scc-to-user anyuid -z default -n milvus
+oc adm policy add-scc-to-user anyuid -z milvus-minio -n milvus
+
 # Add Helm repo
 helm repo add milvus https://zilliztech.github.io/milvus-helm/
 helm repo update
@@ -195,7 +200,7 @@ helm repo update
 # Install with OpenShift values
 helm install milvus milvus/milvus \
   -f databases/milvus/openshift/values-openshift.yaml \
-  -n milvus --create-namespace
+  -n milvus
 
 # Wait for pods
 oc wait --for=condition=Ready pods -l app.kubernetes.io/name=milvus -n milvus --timeout=300s
@@ -206,8 +211,9 @@ See [databases/milvus/README.md](databases/milvus/README.md) for configuration o
 #### Option B: PGVector
 
 ```bash
-oc apply -k databases/pgvector/openshift/ -n advanced-rag
-oc wait --for=condition=Ready pods -l app=pgvector -n advanced-rag --timeout=120s
+oc new-project pgvector
+oc apply -k databases/pgvector/openshift/ -n pgvector
+oc wait --for=condition=Ready pods -l app=pgvector -n pgvector --timeout=120s
 ```
 
 See [databases/pgvector/README.md](databases/pgvector/README.md) for details.
@@ -215,11 +221,25 @@ See [databases/pgvector/README.md](databases/pgvector/README.md) for details.
 #### Option C: Meilisearch
 
 ```bash
+oc new-project meilisearch
 oc adm policy add-scc-to-user anyuid -z default -n meilisearch
-oc apply -k databases/meilisearch/openshift/ -n meilisearch --create-namespace
+oc apply -k databases/meilisearch/openshift/ -n meilisearch
+oc wait --for=condition=Ready pods -l app=meilisearch -n meilisearch --timeout=120s
 ```
 
 See [databases/meilisearch/README.md](databases/meilisearch/README.md) for details.
+
+#### Option D: Redis (Caching Layer)
+
+Redis is optional but recommended for caching embeddings and search results:
+
+```bash
+oc new-project redis
+oc apply -k databases/redis/openshift/ -n redis
+oc wait --for=condition=Ready pods -l app=redis -n redis --timeout=120s
+```
+
+See [databases/redis/README.md](databases/redis/README.md) for caching patterns.
 
 ---
 
@@ -397,7 +417,8 @@ advanced-rag/
 ├── databases/                    # Vector store configurations
 │   ├── milvus/                   # Milvus (recommended)
 │   ├── pgvector/                 # PostgreSQL + pgvector
-│   └── meilisearch/              # Meilisearch
+│   ├── meilisearch/              # Meilisearch
+│   └── redis/                    # Redis (caching, sessions)
 ├── models/                       # Self-hosted model deployments
 │   ├── caikit-embeddings/        # Embedding + reranker models
 │   ├── gpt-oss/                  # GPT-OSS LLM
@@ -418,6 +439,7 @@ advanced-rag/
 | [retrieval-mcp/README.md](retrieval-mcp/README.md) | MCP server tools and agent integration |
 | [models/README.md](models/README.md) | Self-hosted model deployment |
 | [databases/milvus/README.md](databases/milvus/README.md) | Milvus setup and usage |
+| [databases/redis/README.md](databases/redis/README.md) | Redis caching patterns for RAG |
 | [docling-serve/README.md](docling-serve/README.md) | Document conversion service |
 | [pipelines/README.md](pipelines/README.md) | Kubeflow pipeline examples |
 | [docs/architecture.md](docs/architecture.md) | System design and data flow |
@@ -436,6 +458,9 @@ pip install -r requirements.txt
 
 # Start local vector store
 cd databases/milvus/local && ./podman_milvus.sh start && cd ../../..
+
+# Optional: Start Redis for caching
+cd databases/redis/local && ./redis.sh start && cd ../../..
 
 # Build Go chunker
 cd services/chunker_service && go build -o ../../bin/chunker ./cmd/chunker && cd ../..
