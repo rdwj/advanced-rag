@@ -11,22 +11,25 @@ This document covers deploying Milvus on OpenShift using the official Helm chart
 ## Quick Deploy (TL;DR)
 
 ```bash
+# Set your namespace
+NAMESPACE=milvus  # Change to your desired namespace
+
 # Create namespace
-oc new-project advanced-rag || oc project advanced-rag
+oc create namespace $NAMESPACE
 
 # CRITICAL: Grant SCC permissions BEFORE deploying
-oc adm policy add-scc-to-user anyuid -z default -n advanced-rag
-oc adm policy add-scc-to-user anyuid -z milvus-minio -n advanced-rag
+oc adm policy add-scc-to-user anyuid -z default -n $NAMESPACE
+oc adm policy add-scc-to-user anyuid -z milvus-minio -n $NAMESPACE
 
 # Add Helm repo
 helm repo add milvus https://zilliztech.github.io/milvus-helm/
 helm repo update milvus
 
 # Install Milvus standalone with OpenShift-compatible values
-helm install milvus milvus/milvus -n advanced-rag -f values-openshift.yaml
+helm install milvus milvus/milvus -n $NAMESPACE -f values-openshift.yaml
 
 # Wait for pods
-oc wait --for=condition=Ready pod -l app.kubernetes.io/instance=milvus -n advanced-rag --timeout=600s
+oc wait --for=condition=Ready pod -l app.kubernetes.io/instance=milvus -n $NAMESPACE --timeout=600s
 ```
 
 ## Full Installation Steps
@@ -34,7 +37,11 @@ oc wait --for=condition=Ready pod -l app.kubernetes.io/instance=milvus -n advanc
 ### Step 1: Create Namespace
 
 ```bash
-oc new-project advanced-rag || oc project advanced-rag
+# Set your namespace variable (used throughout these instructions)
+NAMESPACE=milvus  # Change to your desired namespace
+
+# Create the namespace
+oc create namespace $NAMESPACE
 ```
 
 ### Step 2: Grant OpenShift SCC Permissions (CRITICAL)
@@ -43,8 +50,8 @@ OpenShift's SecurityContextConstraints require explicit permissions for pods to 
 
 ```bash
 # Grant anyuid SCC to service accounts that Milvus components will use
-oc adm policy add-scc-to-user anyuid -z default -n advanced-rag
-oc adm policy add-scc-to-user anyuid -z milvus-minio -n advanced-rag
+oc adm policy add-scc-to-user anyuid -z default -n $NAMESPACE
+oc adm policy add-scc-to-user anyuid -z milvus-minio -n $NAMESPACE
 ```
 
 ### Step 3: Add Helm Repository
@@ -124,11 +131,11 @@ standalone:
 ```bash
 # Install with custom values
 helm install milvus milvus/milvus \
-  -n advanced-rag \
+  -n $NAMESPACE \
   -f values-openshift.yaml
 
 # Or install with inline values (no file needed)
-helm install milvus milvus/milvus -n advanced-rag \
+helm install milvus milvus/milvus -n $NAMESPACE \
   --set cluster.enabled=false \
   --set etcd.replicaCount=1 \
   --set etcd.persistence.size=10Gi \
@@ -150,7 +157,7 @@ helm install milvus milvus/milvus -n advanced-rag \
 
 ```bash
 # Watch pods come up (typically takes 3-5 minutes)
-oc get pods -n advanced-rag -w
+oc get pods -n $NAMESPACE -w
 
 # Expected pods:
 # - milvus-etcd-0              (StatefulSet)
@@ -158,17 +165,17 @@ oc get pods -n advanced-rag -w
 # - milvus-standalone-*        (Deployment - Milvus server)
 
 # Check Helm release status
-helm status milvus -n advanced-rag
+helm status milvus -n $NAMESPACE
 
 # View all resources created
-helm get manifest milvus -n advanced-rag | oc get -f -
+helm get manifest milvus -n $NAMESPACE | oc get -f -
 ```
 
 ### Step 7: Verify Deployment
 
 ```bash
 # Check health via port-forward
-oc port-forward svc/milvus 9091:9091 -n advanced-rag &
+oc port-forward svc/milvus 9091:9091 -n $NAMESPACE &
 curl http://localhost:9091/healthz        # Should return: OK
 curl http://localhost:9091/api/v1/health  # Should return: {"status":"ok"}
 kill %1
@@ -194,13 +201,13 @@ unable to validate against any security context constraint
 **Solution**: Grant anyuid SCC to the affected service account:
 ```bash
 # Check which service account the pod uses
-oc get pod <pod-name> -n advanced-rag -o jsonpath='{.spec.serviceAccountName}'
+oc get pod <pod-name> -n $NAMESPACE -o jsonpath='{.spec.serviceAccountName}'
 
 # Grant SCC
-oc adm policy add-scc-to-user anyuid -z <service-account-name> -n advanced-rag
+oc adm policy add-scc-to-user anyuid -z <service-account-name> -n $NAMESPACE
 
 # Delete the stuck pod to trigger recreation
-oc delete pod <pod-name> -n advanced-rag
+oc delete pod <pod-name> -n $NAMESPACE
 ```
 
 ### etcd fails to start
@@ -209,8 +216,8 @@ oc delete pod <pod-name> -n advanced-rag
 
 **Solution**: The etcd StatefulSet may need the anyuid SCC:
 ```bash
-oc adm policy add-scc-to-user anyuid -z milvus-etcd -n advanced-rag
-oc delete pod milvus-etcd-0 -n advanced-rag
+oc adm policy add-scc-to-user anyuid -z milvus-etcd -n $NAMESPACE
+oc delete pod milvus-etcd-0 -n $NAMESPACE
 ```
 
 ### MinIO fails with permission denied
@@ -219,27 +226,27 @@ oc delete pod milvus-etcd-0 -n advanced-rag
 
 **Solution**: Ensure the minio service account has anyuid:
 ```bash
-oc adm policy add-scc-to-user anyuid -z milvus-minio -n advanced-rag
+oc adm policy add-scc-to-user anyuid -z milvus-minio -n $NAMESPACE
 ```
 
 ### Check Pod Logs
 
 ```bash
 # Milvus standalone
-oc logs deployment/milvus-standalone -n advanced-rag --tail=100
+oc logs deployment/milvus-standalone -n $NAMESPACE --tail=100
 
 # etcd
-oc logs milvus-etcd-0 -n advanced-rag --tail=100
+oc logs milvus-etcd-0 -n $NAMESPACE --tail=100
 
 # MinIO
-oc logs -l app.kubernetes.io/name=minio -n advanced-rag --tail=100
+oc logs -l app.kubernetes.io/name=minio -n $NAMESPACE --tail=100
 ```
 
 ### Helm Rollback
 
 If deployment fails, rollback to previous state:
 ```bash
-helm rollback milvus 1 -n advanced-rag
+helm rollback milvus 1 -n $NAMESPACE
 ```
 
 ## Service Endpoints
@@ -248,20 +255,25 @@ With Helm deployment, service names are simpler than operator-based deployment:
 
 | Service | Internal URL | Port |
 |---------|-------------|------|
-| Milvus gRPC | `milvus.advanced-rag.svc.cluster.local` | 19530 |
-| Milvus Metrics | `milvus.advanced-rag.svc.cluster.local` | 9091 |
-| etcd | `milvus-etcd.advanced-rag.svc.cluster.local` | 2379 |
-| MinIO | `milvus-minio.advanced-rag.svc.cluster.local` | 9000 |
+| Milvus gRPC | `milvus.<namespace>.svc.cluster.local` | 19530 |
+| Milvus Metrics | `milvus.<namespace>.svc.cluster.local` | 9091 |
+| etcd | `milvus-etcd.<namespace>.svc.cluster.local` | 2379 |
+| MinIO | `milvus-minio.<namespace>.svc.cluster.local` | 9000 |
 
-**Note**: The main Milvus service is named `milvus`, NOT `milvus-standalone-milvus` (which is the operator naming convention).
+**Note**: The main Milvus service is named `milvus`, NOT `milvus-standalone-milvus` (which is the operator naming convention). Replace `<namespace>` with your actual namespace.
 
 ## Environment Variables for Clients
 
 ```bash
-export MILVUS_HOST="milvus.advanced-rag.svc.cluster.local"
+# Replace <namespace> with your actual namespace
+export MILVUS_HOST="milvus.<namespace>.svc.cluster.local"
 export MILVUS_PORT="19530"
 # Or as URI
-export MILVUS_URI="http://milvus.advanced-rag.svc.cluster.local:19530"
+export MILVUS_URI="http://milvus.<namespace>.svc.cluster.local:19530"
+
+# For same-namespace access, you can use the short service name:
+export MILVUS_HOST="milvus"
+export MILVUS_URI="http://milvus:19530"
 ```
 
 ## Upgrade
@@ -271,10 +283,10 @@ export MILVUS_URI="http://milvus.advanced-rag.svc.cluster.local:19530"
 helm repo update milvus
 
 # Upgrade with new values
-helm upgrade milvus milvus/milvus -n advanced-rag -f values-openshift.yaml
+helm upgrade milvus milvus/milvus -n $NAMESPACE -f values-openshift.yaml
 
 # Or upgrade to specific version
-helm upgrade milvus milvus/milvus -n advanced-rag \
+helm upgrade milvus milvus/milvus -n $NAMESPACE \
   --version 4.2.0 \
   -f values-openshift.yaml
 ```
@@ -283,17 +295,17 @@ helm upgrade milvus milvus/milvus -n advanced-rag \
 
 ```bash
 # Uninstall Milvus (keeps PVCs by default)
-helm uninstall milvus -n advanced-rag
+helm uninstall milvus -n $NAMESPACE
 
 # Delete PVCs if you want to remove all data
-oc delete pvc -l app.kubernetes.io/instance=milvus -n advanced-rag
+oc delete pvc -l app.kubernetes.io/instance=milvus -n $NAMESPACE
 
 # Delete namespace entirely
-oc delete project advanced-rag
+oc delete namespace $NAMESPACE
 
 # Remove SCC grants (optional, cleaned up with namespace deletion)
-oc adm policy remove-scc-from-user anyuid -z default -n advanced-rag
-oc adm policy remove-scc-from-user anyuid -z milvus-minio -n advanced-rag
+oc adm policy remove-scc-from-user anyuid -z default -n $NAMESPACE
+oc adm policy remove-scc-from-user anyuid -z milvus-minio -n $NAMESPACE
 ```
 
 ## Version Information

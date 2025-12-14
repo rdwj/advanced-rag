@@ -2,11 +2,11 @@
 # Tested with: Helm Chart 5.0.8, Milvus 2.6.6
 #
 # Usage:
-#   helm install milvus milvus/milvus -n advanced-rag -f values-openshift.yaml
+#   helm install milvus milvus/milvus -n <namespace> -f values-openshift.yaml
 #
 # Prerequisites:
-#   oc adm policy add-scc-to-user anyuid -z default -n advanced-rag
-#   oc adm policy add-scc-to-user anyuid -z milvus-minio -n advanced-rag
+#   oc adm policy add-scc-to-user anyuid -z default -n <namespace>
+#   oc adm policy add-scc-to-user anyuid -z milvus-minio -n <namespace>
 
 # Standalone mode (single-node deployment)
 cluster:
