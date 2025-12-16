@@ -1,0 +1,88 @@
+# Valkey Deployment for OpenShift
+# Uses Bitnami Valkey image which supports arbitrary UIDs
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey
+  labels:
+    app: valkey
+    app.kubernetes.io/name: valkey
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Required for single-instance with PVC
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+        app.kubernetes.io/name: valkey
+        app.kubernetes.io/part-of: advanced-rag
+    spec:
+      containers:
+        - name: valkey
+          # Bitnami Valkey supports arbitrary UIDs for OpenShift compatibility
+          # See https://hub.docker.com/r/bitnami/valkey/tags for available versions
+          image: docker.io/bitnami/valkey:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: valkey
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: valkey-credentials
+                  key: VALKEY_PASSWORD
+            # Bitnami-specific settings
+            - name: VALKEY_AOF_ENABLED
+              value: "yes"
+            - name: VALKEY_RDB_POLICY_DISABLED
+              value: "no"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/valkey/data
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - valkey-cli -a $VALKEY_PASSWORD ping | grep -q PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - valkey-cli -a $VALKEY_PASSWORD ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: valkey-data
+      restartPolicy: Always
