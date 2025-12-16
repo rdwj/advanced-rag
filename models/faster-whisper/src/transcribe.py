@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from typing import BinaryIO
 
+import numpy as np
 from faster_whisper import WhisperModel
 
 from .models import Segment, TranscriptionResponse, Word
@@ -31,13 +32,81 @@ def get_model_config() -> dict:
     }
 
 
+def _check_cuda_available() -> bool:
+    """Check if CUDA is actually available and functional.
+
+    This performs a lightweight check before attempting to load models,
+    catching cuDNN library issues that would crash the process.
+
+    Returns:
+        True if CUDA is available and functional, False otherwise
+    """
+    try:
+        import torch
+
+        if not torch.cuda.is_available():
+            logger.info("CUDA not available (torch.cuda.is_available() = False)")
+            return False
+
+        # Try to actually use CUDA - this catches cuDNN issues
+        logger.info("Testing CUDA availability...")
+        device = torch.device("cuda")
+        # Allocate a small tensor on GPU
+        x = torch.zeros(1, device=device)
+        # Run a simple operation to verify CUDA works
+        y = x + 1
+        del x, y
+        torch.cuda.empty_cache()
+
+        logger.info(f"CUDA is available: {torch.cuda.get_device_name(0)}")
+        return True
+
+    except Exception as e:
+        logger.warning(f"CUDA check failed: {e}")
+        return False
+
+
+def _validate_model(model: WhisperModel, device: str) -> bool:
+    """Validate model works by running a tiny test transcription.
+
+    This catches issues like missing cuDNN libraries that only manifest
+    during actual inference, not during model loading.
+
+    Args:
+        model: Loaded WhisperModel instance
+        device: Device the model is loaded on
+
+    Returns:
+        True if validation passed, False otherwise
+    """
+    try:
+        # Generate 1 second of silence as test audio
+        test_audio = np.zeros(16000, dtype=np.float32)
+
+        # Run a minimal transcription to verify CUDA/cuDNN works
+        logger.info(f"Validating model on {device}...")
+        segments, _ = model.transcribe(
+            test_audio,
+            language="en",
+            word_timestamps=False,
+            vad_filter=False,
+        )
+        # Consume the generator to actually run inference
+        list(segments)
+        logger.info(f"Model validation passed on {device}")
+        return True
+    except Exception as e:
+        logger.warning(f"Model validation failed on {device}: {e}")
+        return False
+
+
 def load_model(
     model_size: str = "medium",
     device: str = "cuda",
     compute_type: str = "float16",
     model_path: str | None = None,
 ) -> WhisperModel:
-    """Load the faster-whisper model.
+    """Load the faster-whisper model with automatic CPU fallback.
 
     Args:
         model_size: Whisper model size (tiny, base, small, medium, large-v3)
@@ -47,6 +116,10 @@ def load_model(
 
     Returns:
         Loaded WhisperModel instance
+
+    Note:
+        If CUDA is not available or validation fails, automatically falls back to CPU.
+        This handles cases where CUDA loads but cuDNN ops fail during inference.
     """
     global _model, _model_size, _device, _compute_type
 
@@ -63,35 +136,65 @@ def load_model(
         f"compute_type={compute_type}, download_root={download_root}"
     )
 
+    # Check CUDA availability BEFORE attempting to load on GPU
+    # This catches cuDNN issues that would crash the process
+    use_cuda = device == "cuda" and _check_cuda_available()
+
+    if device == "cuda" and not use_cuda:
+        logger.warning("CUDA requested but not available/functional, falling back to CPU")
+        device = "cpu"
+        compute_type = "float32"
+
+    # Try loading on determined device
     try:
-        _model = WhisperModel(
+        model = WhisperModel(
             model_size,
             device=device,
             compute_type=compute_type,
             download_root=download_root,
         )
-        _model_size = model_size
-        _device = device
-        _compute_type = compute_type
-        logger.info(f"Model loaded successfully on {device}")
-        return _model
+        logger.info(f"Model loaded on {device}")
+
+        # Validate the model actually works
+        if _validate_model(model, device):
+            _model = model
+            _model_size = model_size
+            _device = device
+            _compute_type = compute_type
+            return _model
+        else:
+            logger.warning(f"Model validation failed on {device}, will try fallback")
+            del model  # Free memory before fallback
+
     except Exception as e:
-        logger.error(f"Failed to load model: {e}")
-        # Try CPU fallback if CUDA fails
-        if device == "cuda":
-            logger.info("Attempting CPU fallback...")
-            _model = WhisperModel(
+        logger.warning(f"Failed to load model on {device}: {e}")
+
+    # CPU fallback if CUDA failed or validation failed
+    if device == "cuda":
+        logger.info("Attempting CPU fallback...")
+        try:
+            model = WhisperModel(
                 model_size,
                 device="cpu",
-                compute_type="float32",
+                compute_type="float32",  # CPU works best with float32
                 download_root=download_root,
             )
-            _model_size = model_size
-            _device = "cpu"
-            _compute_type = "float32"
-            logger.info("Model loaded on CPU (fallback)")
-            return _model
-        raise
+
+            if _validate_model(model, "cpu"):
+                _model = model
+                _model_size = model_size
+                _device = "cpu"
+                _compute_type = "float32"
+                logger.info("Model loaded and validated on CPU (fallback)")
+                return _model
+            else:
+                raise RuntimeError("CPU fallback validation also failed")
+
+        except Exception as e:
+            logger.error(f"CPU fallback failed: {e}")
+            raise RuntimeError(f"Could not load model on any device: {e}")
+
+    raise RuntimeError(f"Failed to load model on {device}")
 
 
 def transcribe(
