@@ -10,6 +10,7 @@ Vector databases and supporting infrastructure for RAG applications. Each direct
 | [milvus](milvus/) | Dedicated vector database | Large-scale similarity search |
 | [meilisearch](meilisearch/) | Search engine with vector support | Full-text + semantic search |
 | [redis](redis/) | In-memory data store | Caching, session management |
+| [valkey](valkey/) | In-memory data store (Redis fork) | Caching, open source alternative to Redis |
 
 ## Quick Comparison
 
@@ -17,6 +18,7 @@ Vector databases and supporting infrastructure for RAG applications. Each direct
 - **Milvus**: Best for large vector datasets (millions+) with high query throughput
 - **Meilisearch**: Best for applications needing typo-tolerant keyword search alongside vectors
 - **Redis**: Not a vector DB; use for caching embeddings or search results
+- **Valkey**: Same as Redis but truly open source (BSD-3); preferred for new deployments
 
 ## Structure
 

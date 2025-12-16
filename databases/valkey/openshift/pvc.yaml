@@ -1,0 +1,18 @@
+# Persistent Volume Claim for Valkey data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: valkey-data
+  labels:
+    app: valkey
+    app.kubernetes.io/name: valkey
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Adjust size based on expected cache size
+      storage: 5Gi
+  # storageClassName: gp3  # Uncomment and adjust for your cluster

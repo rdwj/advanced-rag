@@ -1,0 +1,19 @@
+# Service for internal cluster access to Valkey
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey
+  labels:
+    app: valkey
+    app.kubernetes.io/name: valkey
+    app.kubernetes.io/part-of: advanced-rag
+spec:
+  type: ClusterIP
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey
+      protocol: TCP
+  selector:
+    app: valkey

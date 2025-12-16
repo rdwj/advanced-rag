@@ -244,6 +244,18 @@ oc wait --for=condition=Ready pods -l app=redis -n redis --timeout=120s
 
 See [databases/redis/README.md](databases/redis/README.md) for caching patterns.
 
+#### Option E: Valkey (Caching Layer - Open Source Alternative)
+
+Valkey is the Linux Foundation fork of Redis with BSD-3 license. API-compatible drop-in replacement:
+
+```bash
+oc new-project valkey
+oc apply -k databases/valkey/openshift/ -n valkey
+oc wait --for=condition=Ready pods -l app=valkey -n valkey --timeout=120s
+```
+
+See [databases/valkey/README.md](databases/valkey/README.md) for details.
+
 ---
 
 ### Step 5: Deploy Docling-Serve
