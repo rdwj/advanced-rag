@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faster-whisper
+  labels:
+    app: faster-whisper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faster-whisper
+  template:
+    metadata:
+      labels:
+        app: faster-whisper
+    spec:
+      containers:
+        - name: faster-whisper
+          image: quay.io/wjackson/faster-whisper:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MODEL_SIZE
+              value: "medium"
+            - name: DEVICE
+              value: "cuda"
+            - name: COMPUTE_TYPE
+              value: "float16"
+            - name: MODEL_PATH
+              value: "/mnt/models"
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "1"
+              nvidia.com/gpu: "1"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: models
+              mountPath: /mnt/models
+            - name: shm
+              mountPath: /dev/shm
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: faster-whisper-models
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: faster-whisper
+  labels:
+    app: faster-whisper
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: faster-whisper

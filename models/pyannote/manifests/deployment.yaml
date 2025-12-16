@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pyannote-server
+  labels:
+    app: pyannote-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pyannote-server
+  template:
+    metadata:
+      labels:
+        app: pyannote-server
+    spec:
+      # Image pull secret - replaced by deploy.sh
+      # Remove this block if PULL_SECRET_PLACEHOLDER is empty
+      imagePullSecrets:
+      - name: PULL_SECRET_PLACEHOLDER
+      containers:
+      - name: pyannote-server
+        # Image - replaced by deploy.sh
+        image: IMAGE_PLACEHOLDER
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: MODEL_PATH
+          value: /mnt/models
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: pyannote-hf-token
+              key: token
+              optional: false
+        - name: MODEL_NAME
+          value: pyannote/speaker-diarization-3.1
+        - name: HF_HOME
+          value: /tmp/hf_home
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            nvidia.com/gpu: "1"
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 60
+          timeoutSeconds: 10
+          failureThreshold: 6
+        volumeMounts:
+        - name: models
+          mountPath: /mnt/models
+        - name: shm
+          mountPath: /dev/shm
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: pyannote-models
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pyannote-server
+  labels:
+    app: pyannote-server
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: pyannote-server
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: pyannote-server
+  labels:
+    app: pyannote-server
+spec:
+  to:
+    kind: Service
+    name: pyannote-server
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

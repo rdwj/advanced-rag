@@ -31,14 +31,27 @@ models/
 │   └── manifests/              # Kustomize base + overlays
 │       ├── base/               # Core deployment resources
 │       └── overlays/default/   # Default namespace overlay
-└── whisper/                    # Whisper Speech-to-Text model (vLLM runtime)
+├── whisper/                    # Whisper Speech-to-Text model (vLLM runtime)
+│   ├── README.md               # Detailed documentation
+│   ├── deploy.sh               # Deployment script
+│   ├── Makefile                # Make targets
+│   └── manifests/              # OpenShift manifests
+│       ├── namespace.yaml
+│       ├── serving-runtime.yaml
+│       └── inference-service.yaml
+└── pyannote/                   # Pyannote Speaker Diarization (Custom FastAPI)
     ├── README.md               # Detailed documentation
     ├── deploy.sh               # Deployment script
     ├── Makefile                # Make targets
+    ├── Containerfile           # Container build file (UBI9)
+    ├── requirements.txt        # Python dependencies
+    ├── src/                    # FastAPI application
+    │   └── server.py
     └── manifests/              # OpenShift manifests
         ├── namespace.yaml
-        ├── serving-runtime.yaml
-        └── inference-service.yaml
+        ├── deployment.yaml
+        ├── pvc.yaml
+        └── secret.yaml.example
 ```
 
 ## Deployed Models
@@ -88,6 +101,18 @@ See [granite-vision/README.md](granite-vision/README.md) for deployment guide an
 OpenAI-compatible audio transcription API using RHAIIS vLLM 3.2.4+ runtime.
 
 See [whisper/README.md](whisper/README.md) for deployment guide and API usage.
+
+### Pyannote Speaker Diarization (Namespace: `models`)
+
+| Model | Framework | Features | Route Name |
+|-------|-----------|----------|------------|
+| `pyannote/speaker-diarization-3.1` | pyannote.audio 4.x | Speaker diarization, VAD | `pyannote-server` |
+
+**Endpoint pattern**: `https://pyannote-server-models.apps.<cluster-domain>`
+
+Custom FastAPI server for speaker diarization ("who spoke when"). Requires GPU and HuggingFace token.
+
+See [pyannote/README.md](pyannote/README.md) for deployment guide and API usage.
 
 ## Quick Reference
 
@@ -139,6 +164,14 @@ curl -sk "${WHISPER_URL}/v1/audio/transcriptions" \
   -F file=@audio.wav \
   -F model=whisper-large-fp8 \
   -F response_format=json
+```
+
+### Speaker Diarization API (Pyannote)
+
+```bash
+PYANNOTE_URL="https://pyannote-server-models.${CLUSTER_DOMAIN}"
+curl -sk "${PYANNOTE_URL}/v1/diarize" \
+  -F file=@audio.wav
 ```
 
 ## Storage
