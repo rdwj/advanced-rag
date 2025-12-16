@@ -2,58 +2,6 @@
 
 This directory contains configuration, scripts, and deployment manifests for self-hosted ML models on OpenShift AI.
 
-## Directory Structure
-
-```
-models/
-├── caikit-embeddings/          # Embedding and reranker models (Caikit runtime)
-│   ├── README.md               # Detailed documentation
-│   ├── Makefile                # Deploy targets (make deploy-all, etc.)
-│   ├── scripts/                # Bootstrap and upload scripts
-│   │   ├── bootstrap_granite_embedding.py
-│   │   ├── bootstrap_minilm_embedding.py
-│   │   ├── bootstrap_reranker.py
-│   │   ├── upload_granite_to_s3.py
-│   │   ├── upload_minilm_to_s3.py
-│   │   └── upload_reranker_to_s3.py
-│   └── manifests/              # OpenShift manifests
-│       ├── base/               # Shared resources (runtime, secrets)
-│       ├── granite-embedding/  # Granite embedding model
-│       ├── minilm-embedding/   # MiniLM embedding model
-│       └── reranker/           # MS-Marco reranker model
-├── gpt-oss/                    # GPT-OSS LLM model (vLLM runtime)
-│   ├── README.md               # Detailed documentation
-│   ├── scripts/                # Download and upload scripts
-│   ├── manifests/              # OpenShift manifests
-│   └── tiktoken/               # Tokenizer vocabulary files
-├── granite-vision/             # Granite Vision Language Model (vLLM runtime)
-│   ├── README.md               # Detailed documentation
-│   └── manifests/              # Kustomize base + overlays
-│       ├── base/               # Core deployment resources
-│       └── overlays/default/   # Default namespace overlay
-├── whisper/                    # Whisper Speech-to-Text model (vLLM runtime)
-│   ├── README.md               # Detailed documentation
-│   ├── deploy.sh               # Deployment script
-│   ├── Makefile                # Make targets
-│   └── manifests/              # OpenShift manifests
-│       ├── namespace.yaml
-│       ├── serving-runtime.yaml
-│       └── inference-service.yaml
-└── pyannote/                   # Pyannote Speaker Diarization (Custom FastAPI)
-    ├── README.md               # Detailed documentation
-    ├── deploy.sh               # Deployment script
-    ├── Makefile                # Make targets
-    ├── Containerfile           # Container build file (UBI9)
-    ├── requirements.txt        # Python dependencies
-    ├── src/                    # FastAPI application
-    │   └── server.py
-    └── manifests/              # OpenShift manifests
-        ├── namespace.yaml
-        ├── deployment.yaml
-        ├── pvc.yaml
-        └── secret.yaml.example
-```
-
 ## Deployed Models
 
 ### Caikit Embeddings (Namespace: `caikit-embeddings`)
@@ -78,6 +26,18 @@ See [caikit-embeddings/README.md](caikit-embeddings/README.md) for deployment, A
 
 See [gpt-oss/README.md](gpt-oss/README.md) for deployment guide, API usage, and LibreChat integration.
 
+### Ministral-8B LLM (Namespace: `ministral`)
+
+| Model | Size | Features | Route Name |
+|-------|------|----------|------------|
+| `mistralai/Ministral-8B-Instruct-2410` | ~15GB | Tool calling, multilingual, code generation | `ministral-8b` |
+
+**Endpoint pattern**: `https://<route-name>-ministral.apps.<cluster-domain>`
+
+OpenAI-compatible chat API with function/tool calling support via vLLM runtime.
+
+See [ministral-8b/README.md](ministral-8b/README.md) for deployment guide, LibreChat integration, and MCP tool usage.
+
 ### Granite Vision (Namespace: `granite-vision`)
 
 | Model | Parameters | Context | Route Name |
@@ -101,6 +61,18 @@ See [granite-vision/README.md](granite-vision/README.md) for deployment guide an
 OpenAI-compatible audio transcription API using RHAIIS vLLM 3.2.4+ runtime.
 
 See [whisper/README.md](whisper/README.md) for deployment guide and API usage.
+
+### Faster-Whisper Transcription (Namespace: `faster-whisper`)
+
+| Model | Framework | Features | Service Name |
+|-------|-----------|----------|--------------|
+| `faster-whisper medium` | CTranslate2 | Word-level timestamps, GPU accelerated | `faster-whisper` |
+
+**Internal endpoint**: `http://faster-whisper.faster-whisper.svc.cluster.local:8080`
+
+Custom FastAPI service providing transcription with word-level timestamps for speaker diarization alignment. Cluster-internal only (no external route). Designed to work with pyannote-server for combined transcription and diarization workflows.
+
+See [faster-whisper/README.md](faster-whisper/README.md) for deployment guide and API usage.
 
 ### Pyannote Speaker Diarization (Namespace: `models`)
 
@@ -156,6 +128,15 @@ curl -sk "${LLM_URL}/v1/chat/completions" \
   -d '{"model": "gpt-oss-20b-rhaiis", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
+### Ministral-8B API (vLLM/OpenAI-compatible)
+
+```bash
+MINISTRAL_URL="https://ministral-8b-ministral.${CLUSTER_DOMAIN}"
+curl -sk "${MINISTRAL_URL}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "ministral-8b", "messages": [{"role": "user", "content": "Hello!"}], "max_tokens": 100}'
+```
+
 ### Speech-to-Text API (Whisper/vLLM)
 
 ```bash
@@ -164,6 +145,14 @@ curl -sk "${WHISPER_URL}/v1/audio/transcriptions" \
   -F file=@audio.wav \
   -F model=whisper-large-fp8 \
   -F response_format=json
+```
+
+### Transcription API (Faster-Whisper, cluster-internal)
+
+```bash
+# From within cluster or via port-forward
+curl -X POST "http://faster-whisper.faster-whisper.svc.cluster.local:8080/transcribe" \
+  -F "file=@audio.wav"
 ```
 
 ### Speaker Diarization API (Pyannote)
