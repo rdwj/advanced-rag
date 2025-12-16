@@ -61,6 +61,8 @@ Evaluator (OpenAI eval model; JSON score/feedback; suggest plan tweaks)
 - **PGVector**: Dense vectors + PostgreSQL FTS with manual RRF
 - **Meilisearch**: Score-based hybrid via `semanticRatio`
 
+See [vector-stores.md](vector-stores.md) for detailed configuration.
+
 ### Reranking (`pipelines/rag_pipeline/rerank.py`)
 
 - Provider abstraction supporting Cohere, OpenAI, or none
@@ -78,7 +80,9 @@ Evaluator (OpenAI eval model; JSON score/feedback; suggest plan tweaks)
 - JSON-based scoring with feedback
 - Iterative plan refinement (max 5 rounds)
 
-## Microservices Architecture
+## Microservices
+
+See [microservices.md](microservices.md) for the full service reference.
 
 | Service | Language | Port | Purpose |
 |---------|----------|------|---------|
@@ -91,23 +95,6 @@ Evaluator (OpenAI eval model; JSON score/feedback; suggest plan tweaks)
 
 All services expose `/healthz` for health checks.
 
-## Data Flow
-
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  MCP Client /   │     │   MCP Server     │     │  Vector Gateway │
-│  Agent App      │────▶│   (FastMCP)      │────▶│  (enhanced)     │
-│                 │     │                  │     │                 │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                         │
-                             ┌────────────────┬──────────┴──────────┐
-                             ▼                ▼                     ▼
-                       ┌──────────┐    ┌────────────┐    ┌──────────────┐
-                       │  Milvus  │    │  Rerank    │    │  Embedding   │
-                       │ (hybrid) │    │  Service   │    │   Service    │
-                       └──────────┘    └────────────┘    └──────────────┘
-```
-
 ## Environment Configuration
 
 ### Required
@@ -118,20 +105,7 @@ All services expose `/healthz` for health checks.
 
 - `VECTOR_BACKEND` - `milvus` (default), `pgvector`, or `meilisearch`
 
-### Milvus
-
-- `MILVUS_HOST`, `MILVUS_PORT` or `MILVUS_URI`
-- `MILVUS_COLLECTION`, `MILVUS_RRF_K`, `MILVUS_OVERFETCH`
-
-### PGVector
-
-- `PGVECTOR_CONN` - PostgreSQL connection DSN
-- `PGVECTOR_SCHEMA` - Optional schema name
-
-### Meilisearch
-
-- `MEILI_HOST`, `MEILI_API_KEY`, `MEILI_INDEX`
-- `MEILI_SEMANTIC_RATIO`, `MEILI_RANKING_THRESHOLD`
+See [vector-stores.md](vector-stores.md) for backend-specific configuration.
 
 ### Embeddings/Rerank
 
@@ -144,16 +118,3 @@ All services expose `/healthz` for health checks.
 - `CHUNKER_SERVICE_URL`, `PLAN_SERVICE_URL`
 - `EMBEDDING_SERVICE_URL`, `RERANK_SERVICE_URL`
 - `EVALUATOR_SERVICE_URL`, `VECTOR_GATEWAY_URL`
-
-## Deployment Options
-
-### Local Development
-
-- Run services individually with Python/Go
-- Use local Milvus or PGVector
-
-### OpenShift
-
-- Deploy via Makefile: `cd services && make deploy-all`
-- Or apply individual manifests: `oc apply -f services/*/manifests/`
-- Services communicate internally via cluster DNS

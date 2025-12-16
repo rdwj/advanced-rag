@@ -2,19 +2,21 @@
 
 This project supports multiple vector store backends for storing and searching embeddings.
 
+For database deployment instructions, see the README files in `databases/milvus/`, `databases/pgvector/`, and `databases/meilisearch/`.
+
 ## Backend Selection
 
 Set the `VECTOR_BACKEND` environment variable:
 
 ```bash
-export VECTOR_BACKEND=milvus    # Default
-export VECTOR_BACKEND=pgvector
-export VECTOR_BACKEND=meilisearch
+export VECTOR_BACKEND=milvus      # Default, recommended
+export VECTOR_BACKEND=pgvector    # PostgreSQL + pgvector
+export VECTOR_BACKEND=meilisearch # Meilisearch (experimental vectors)
 ```
 
-## Milvus
+## Milvus (Recommended)
 
-Milvus is the default backend, supporting hybrid search with BM25 sparse vectors and dense embeddings.
+Native hybrid search with BM25 sparse vectors and dense embeddings.
 
 ### Configuration
 
@@ -39,14 +41,6 @@ cd databases/milvus/local
 ./standalone_embed.sh start
 ```
 
-### OpenShift Deployment
-
-Use the Milvus Operator with manifests in `databases/milvus/openshift/`:
-
-```bash
-oc apply -f databases/milvus/openshift/
-```
-
 ## PGVector
 
 PostgreSQL with the pgvector extension, using full-text search (FTS) combined with dense vectors.
@@ -67,15 +61,9 @@ podman-compose up -d
 
 The init script enables the pgvector extension automatically.
 
-### Features
-
-- Dense vector similarity search
-- PostgreSQL full-text search (FTS)
-- Manual RRF fusion for hybrid results
-
 ## Meilisearch
 
-Meilisearch with experimental vector search support.
+Meilisearch with experimental vector search support (v1.14+).
 
 ### Configuration
 
@@ -101,12 +89,6 @@ cd databases/meilisearch/local
 ./meili.sh start
 ```
 
-### Notes
-
-- Requires Meilisearch v1.14+ for vector search
-- Vector search is experimental and must be enabled
-- Client-provided embeddings by default
-
 ## Ingestion
 
 The ingestion pipeline automatically creates collections/tables/indexes for the chosen backend:
@@ -131,22 +113,10 @@ All backends store similar data:
 | `page` | int | Page number (if available) |
 | `heading` | string | Section heading (if available) |
 
-## Performance Considerations
+## Performance Comparison
 
-### Milvus
-
-- Best for large-scale deployments
-- Native hybrid search with BM25
-- Requires more infrastructure
-
-### PGVector
-
-- Good for smaller datasets
-- Leverages existing PostgreSQL expertise
-- FTS + dense requires manual RRF
-
-### Meilisearch
-
-- Excellent for search-focused applications
-- Easy to set up
-- Vector search is experimental
+| Backend | Best For | Hybrid Search | Notes |
+|---------|----------|---------------|-------|
+| **Milvus** | Large-scale deployments | Native BM25 + dense | More infrastructure required |
+| **PGVector** | Smaller datasets | FTS + dense (manual RRF) | Leverages PostgreSQL expertise |
+| **Meilisearch** | Search-focused apps | Score-based ratio | Vector search is experimental |

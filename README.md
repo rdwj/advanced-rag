@@ -403,50 +403,19 @@ See [pipelines/example/README.md](pipelines/example/README.md) for the full exam
 
 ---
 
-## Project Structure
-
-```
-advanced-rag/
-├── services/                     # Deployable microservices
-│   ├── chunker_service/          # Go: sliding-window text chunking
-│   ├── plan_service/             # Python: LLM chunking plan generator
-│   ├── embedding_service/        # Python: batch embeddings
-│   ├── rerank_service/           # Python: result reranking
-│   ├── evaluator_service/        # Python: QA evaluation
-│   ├── vector_gateway/           # Python: unified vector store API
-│   ├── rag_core/                 # Shared Python library
-│   └── Makefile                  # Build/deploy automation
-├── retrieval-mcp/                # FastMCP server for RAG retrieval
-├── databases/                    # Vector store configurations
-│   ├── milvus/                   # Milvus (recommended)
-│   ├── pgvector/                 # PostgreSQL + pgvector
-│   ├── meilisearch/              # Meilisearch
-│   └── redis/                    # Redis (caching, sessions)
-├── models/                       # Self-hosted model deployments
-│   ├── caikit-embeddings/        # Embedding + reranker models
-│   ├── gpt-oss/                  # GPT-OSS LLM
-│   └── granite-vision/           # Vision language model
-├── docling-serve/                # Document conversion service
-├── pipelines/                    # Kubeflow pipelines
-│   └── example/                  # Example ingest pipeline
-├── test_data/                    # Sample files for testing
-├── docs/                         # Additional documentation
-└── bin/                          # Compiled binaries (gitignored)
-```
-
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
 | [services/README.md](services/README.md) | Microservices API reference and deployment |
-| [retrieval-mcp/README.md](retrieval-mcp/README.md) | MCP server tools and agent integration |
+| [databases/README.md](databases/README.md) | Vector databases overview and comparison |
 | [models/README.md](models/README.md) | Self-hosted model deployment |
-| [databases/milvus/README.md](databases/milvus/README.md) | Milvus setup and usage |
-| [databases/redis/README.md](databases/redis/README.md) | Redis caching patterns for RAG |
+| [retrieval-mcp/README.md](retrieval-mcp/README.md) | MCP server for RAG retrieval (agents) |
+| [ingestion-mcp/README.md](ingestion-mcp/README.md) | MCP server for document ingestion |
 | [docling-serve/README.md](docling-serve/README.md) | Document conversion service |
+| [manifests/README.md](manifests/README.md) | Kustomize deployment overlays |
 | [pipelines/README.md](pipelines/README.md) | Kubeflow pipeline examples |
 | [docs/architecture.md](docs/architecture.md) | System design and data flow |
-| [docs/vector-stores.md](docs/vector-stores.md) | Vector store comparison |
 
 ## Local Development
 

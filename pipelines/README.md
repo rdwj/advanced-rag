@@ -26,17 +26,6 @@ python pipelines/example/pipeline.py
 # Output: pipelines/example/ingest_pipeline.yaml
 ```
 
-## Project Structure
-
-```
-pipelines/
-├── README.md              # This file
-└── example/               # Example ingest pipeline
-    ├── pipeline.py        # Pipeline definition
-    ├── README.md          # Pipeline documentation
-    └── ingest_pipeline.yaml  # Compiled pipeline (generated)
-```
-
 ## Adding New Pipelines
 
 1. Create a new directory under `pipelines/`

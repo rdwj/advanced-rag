@@ -1,6 +1,8 @@
 # Redis
 
-Redis is an in-memory data store used for caching, session management, pub/sub messaging, and rate limiting. Ideal for high-performance caching layers in RAG applications.
+In-memory data store for caching, session management, pub/sub messaging, and rate limiting. Ideal for high-performance caching layers in RAG applications.
+
+Part of [databases](../README.md).
 
 ## Features
 
@@ -9,20 +11,6 @@ Redis is an in-memory data store used for caching, session management, pub/sub m
 - Pub/Sub messaging for real-time updates
 - Data structures: strings, hashes, lists, sets, sorted sets
 - TTL-based expiration for cache management
-
-## Directory Structure
-
-```
-redis/
-├── local/                  # Local development setup
-│   └── redis.sh            # Start/stop helper script
-└── openshift/              # OpenShift deployment
-    ├── kustomization.yaml  # Kustomize configuration
-    ├── deployment.yaml     # Deployment manifest
-    ├── service.yaml        # Service definition
-    ├── secret.yaml         # Password secret
-    └── pvc.yaml            # Persistent storage
-```
 
 ## Local Development
 

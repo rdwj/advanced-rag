@@ -2,6 +2,8 @@
 
 This project includes several deployable microservices for the RAG pipeline.
 
+For build and deployment automation, see [../services/README.md](../services/README.md).
+
 ## Service Overview
 
 | Service | Language | Port | Endpoint | Description |
@@ -14,47 +16,6 @@ This project includes several deployable microservices for the RAG pipeline.
 | `vector-gateway` | Python | 8005 | `POST /search`, `POST /upsert` | Vector store abstraction |
 
 All services expose `/healthz` for health checks.
-
-## Service Structure
-
-Python services follow a consistent structure:
-
-```
-services/<name>/
-├── app.py              # FastAPI entrypoint
-├── lib/                # Business logic modules
-│   └── config.py       # Configuration
-├── Containerfile       # Container definition
-├── README.md           # Service documentation
-├── requirements.txt    # Dependencies
-└── manifests/          # OpenShift deployment YAML
-```
-
-The Go chunker service:
-
-```
-services/chunker_service/
-├── cmd/
-│   ├── chunker/        # CLI entrypoint
-│   └── chunker-server/ # HTTP server entrypoint
-├── pkg/chunking/       # Core chunking logic
-├── Containerfile
-├── go.mod
-└── manifests/
-```
-
-Shared Python library:
-
-```
-services/rag_core/
-├── __init__.py         # Re-exports embed_texts, embed_query, rerank functions
-├── config.py           # Configuration functions (get_embedding_client, etc.)
-├── embed.py            # Embedding implementation
-├── rerank.py           # Reranking implementation
-├── models.py           # Shared data models
-├── token_utils.py      # Token counting utilities
-└── providers/          # Provider-specific implementations
-```
 
 ## Building Services
 
@@ -159,21 +120,15 @@ export VECTOR_GATEWAY_URL=http://vector-gateway.advanced-rag.svc.cluster.local:8
 
 Python pipeline modules check for `*_SERVICE_URL` environment variables. If set, they call the service; otherwise, they fall back to local execution:
 
-- `CHUNKER_SERVICE_URL` → calls service, else runs `bin/chunker` CLI
-- `PLAN_SERVICE_URL` → calls service, else uses local `plan.py`
-- `EMBEDDING_SERVICE_URL` → calls service, else uses OpenAI directly
+- `CHUNKER_SERVICE_URL` - calls service, else runs `bin/chunker` CLI
+- `PLAN_SERVICE_URL` - calls service, else uses local `plan.py`
+- `EMBEDDING_SERVICE_URL` - calls service, else uses OpenAI directly
 
 This allows running the pipeline both locally (for development) and in OpenShift (for production).
 
-## Configuration
+## Secret Management
 
-Each service uses environment variables for configuration. See the service-specific README files for details.
-
-### Secret Management
-
-**IMPORTANT**: Service manifests include Secret resources with placeholder values (`REPLACE_WITH_ACTUAL_API_KEY`). You MUST create/update secrets with real API keys before deploying.
-
-Create secrets before applying manifests:
+Service manifests include Secret resources with placeholder values (`REPLACE_WITH_ACTUAL_API_KEY`). Create/update secrets with real API keys before deploying:
 
 ```bash
 # Required for plan-service, embedding-service, evaluator-service, vector-gateway
@@ -202,9 +157,11 @@ After updating secrets, restart deployments:
 oc rollout restart deployment/<service> -n advanced-rag
 ```
 
-### Common Variables
+## Common Configuration
 
 - `OPENAI_API_KEY` - Required for LLM operations
 - `EMBEDDING_MODEL` - Embedding model to use
 - `VECTOR_BACKEND` - `milvus`, `pgvector`, or `meilisearch`
 - `COHERE_API_KEY` - Required for Cohere reranking
+
+See individual service README files for service-specific configuration.
