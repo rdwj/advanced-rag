@@ -1,30 +1,35 @@
 # Faster-Whisper Transcription Service
-# UBI9 base for FIPS compliance on OpenShift
+# NVIDIA CUDA base image with cuDNN 9 for GPU inference
+# Using CUDA 12.4 with latest cuDNN (includes cuDNN 9.x needed by PyTorch 2.x)
 
-FROM registry.redhat.io/ubi9/python-311:latest
+FROM docker.io/nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
-USER root
-
-# Install system dependencies
-# libsndfile for soundfile library (audio I/O)
-# PyAV in requirements.txt provides ffmpeg bindings for format conversion
-RUN dnf install -y libsndfile && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf
+# Install Python 3.11 and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
+    libsndfile1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python
 
 WORKDIR /opt/app-root/src
 
-# Copy requirements and install as root (before switching user)
-# This avoids permission issues with pip reading the requirements file
+# Copy requirements and install dependencies
+# Using CUDA 12.4 wheels to match the base image
 COPY requirements.txt .
 RUN pip install --no-cache-dir \
-    --extra-index-url https://download.pytorch.org/whl/cu121 \
+    --extra-index-url https://download.pytorch.org/whl/cu124 \
     -r requirements.txt
 
 # Copy application code
 COPY src/ ./src/
 
-# Switch to non-root user
+# Create non-root user for OpenShift compatibility
+RUN useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /opt/app-root
 USER 1001
 
 # Environment configuration
