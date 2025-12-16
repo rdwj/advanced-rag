@@ -2,6 +2,8 @@
 
 Go-based sliding window text chunker exposed as an HTTP service. Provides fast, configurable text chunking for RAG pipelines.
 
+Part of [Advanced RAG Services](../README.md).
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
@@ -157,26 +159,3 @@ export CHUNKER_SERVICE_URL=http://chunker-service.advanced-rag.svc.cluster.local
 ```
 http://chunker-service.advanced-rag.svc.cluster.local:8080
 ```
-
-## File Structure
-
-```
-services/chunker_service/
-├── cmd/
-│   ├── chunker/            # CLI tool for local pipeline use
-│   └── chunker-server/     # HTTP server
-├── pkg/chunking/           # Chunking logic
-├── go.mod                  # Go module definition
-├── Containerfile           # Container build (self-contained)
-├── manifests/
-│   └── deployment.yaml     # OpenShift deployment manifests
-└── README.md               # This file
-```
-
-## Notes
-
-- Go binary is statically compiled (~8MB)
-- Uses UBI9 micro image for minimal footprint
-- No external dependencies at runtime
-- Designed for high-throughput chunking operations
-- Service is self-contained for future repo separation

@@ -111,28 +111,6 @@ oc get pods -n advanced-rag -l app=retrieval-mcp
 | `MCP_HTTP_PORT` | `8080` | HTTP server port (when using http transport) |
 | `MCP_HTTP_PATH` | `/mcp/` | HTTP endpoint path |
 
-## Project Structure
-
-```
-retrieval-mcp/
-├── src/
-│   ├── core/           # MCP server initialization
-│   ├── lib/            # Shared utilities (vector client, formatters)
-│   ├── tools/          # MCP tool implementations
-│   │   ├── rag_search.py
-│   │   ├── rag_list_collections.py
-│   │   ├── rag_list_sources.py
-│   │   └── rag_rewrite_query.py
-│   ├── prompts/        # MCP prompts (if any)
-│   ├── resources/      # MCP resources (if any)
-│   └── middleware/     # Request middleware
-├── tests/              # pytest test suite
-├── docs/               # Documentation
-├── Containerfile       # Container build
-├── openshift.yaml      # OpenShift manifests
-└── Makefile            # Build/deploy automation
-```
-
 ## Integration Examples
 
 ### LibreChat Agent
@@ -179,44 +157,6 @@ pytest tests/tools/test_rag_search.py -v
 
 # Test with MCP Inspector (after deployment)
 npx @modelcontextprotocol/inspector https://<route-url>/mcp/
-```
-
-## Development
-
-### Adding New Tools
-
-1. Create a new file in `src/tools/`:
-
-```python
-from typing import Annotated
-from pydantic import Field
-from fastmcp.exceptions import ToolError
-from core.app import mcp
-
-@mcp.tool(
-    annotations={
-        "readOnlyHint": True,
-        "idempotentHint": True,
-    }
-)
-async def my_new_tool(
-    param: Annotated[str, Field(description="Parameter description")],
-) -> str:
-    """Tool description for the LLM."""
-    # Implementation
-    return "result"
-```
-
-2. The tool is automatically discovered and registered at startup.
-
-### Using Generators
-
-```bash
-# Generate a new tool
-fips-agents generate tool my_tool --description "Tool description" --async
-
-# Generate with context support
-fips-agents generate tool search_tool --description "Search tool" --async --with-context
 ```
 
 ## Requirements

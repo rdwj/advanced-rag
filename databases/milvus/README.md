@@ -1,6 +1,8 @@
 # Milvus Vector Database
 
-Milvus is an open-source vector database optimized for similarity search and AI applications. This directory contains configurations for both local development and OpenShift deployment.
+Open-source vector database optimized for similarity search and AI applications.
+
+Part of [databases](../README.md).
 
 ## Features
 
@@ -8,22 +10,6 @@ Milvus is an open-source vector database optimized for similarity search and AI 
 - High-performance similarity search with HNSW and IVF indexes
 - Scalable architecture with distributed deployment options
 - Built-in MinIO integration for object storage
-
-## Directory Structure
-
-```
-milvus/
-├── local/                  # Local development setup
-│   ├── podman_milvus.sh    # Podman helper script
-│   ├── standalone_embed.sh # Alternative standalone script
-│   ├── embedEtcd.yaml      # Embedded etcd configuration
-│   └── user.yaml           # User configuration
-└── openshift/              # OpenShift deployment
-    ├── kustomization.yaml  # Kustomize configuration
-    ├── values-openshift.yaml # Helm values for OpenShift
-    ├── namespace.yaml      # Namespace definition
-    └── OPENSHIFT_DEPLOYMENT.md # Detailed deployment guide
-```
 
 ## Local Development
 

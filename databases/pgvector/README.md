@@ -2,32 +2,14 @@
 
 PostgreSQL with the pgvector extension for vector similarity search. Combines the reliability of PostgreSQL with efficient vector operations.
 
+Part of [databases](../README.md).
+
 ## Features
 
 - Full PostgreSQL functionality with vector search
 - Multiple index types (IVFFlat, HNSW)
 - Native full-text search for hybrid retrieval
 - ACID compliance and mature ecosystem
-
-## Directory Structure
-
-```
-pgvector/
-├── local/                  # Local development setup
-│   ├── compose.yml         # Podman/Docker Compose file
-│   ├── .env.example        # Environment template
-│   ├── pgvector-agent.env  # Agent environment variables
-│   └── initdb/             # Initialization scripts
-│       └── 01_enable_pgvector.sql
-└── openshift/              # OpenShift deployment
-    ├── kustomization.yaml  # Kustomize configuration
-    ├── deployment.yaml     # Deployment manifest
-    ├── service.yaml        # Service definition
-    ├── secret.yaml         # Credentials secret
-    ├── configmap.yaml      # Configuration
-    ├── pvc.yaml            # Persistent storage
-    └── README.md           # Detailed deployment guide
-```
 
 ## Local Development
 

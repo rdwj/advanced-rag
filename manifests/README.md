@@ -1,26 +1,6 @@
 # Advanced RAG Kubernetes Manifests
 
-This directory contains Kustomize-based Kubernetes manifests for deploying the Advanced RAG services.
-
-## Structure
-
-```
-manifests/
-├── base/                           # Base manifests for all services
-│   ├── chunker-service/
-│   ├── embedding-service/
-│   ├── evaluator-service/
-│   ├── plan-service/
-│   ├── rerank-service/
-│   ├── vector-gateway/
-│   ├── retrieval-mcp/
-│   └── kustomization.yaml
-├── overlays/                       # Environment-specific customizations
-│   ├── dev/                        # Development environment
-│   └── example-customer/           # Customer deployment template
-├── Makefile                        # Deployment commands
-└── README.md
-```
+Kustomize-based manifests for deploying Advanced RAG services to OpenShift. Contains base manifests and environment overlays for dev and customer deployments.
 
 ## Quick Start
 

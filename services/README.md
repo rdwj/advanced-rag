@@ -44,62 +44,10 @@ All services expose a `GET /healthz` endpoint for health checks.
 
 ## Shared Library: rag_core
 
-The `rag_core/` directory contains shared Python code used by multiple services:
+The `rag_core/` directory contains shared Python code used by multiple services (embedding, reranking, config utilities). Import via:
 
-```
-rag_core/
-├── __init__.py          # Public API exports
-├── config.py            # YAML config + env var handling
-├── embed.py             # Embedding abstraction
-├── rerank.py            # Reranking abstraction
-├── models.py            # Pydantic configuration models
-├── token_utils.py       # Token counting utilities
-└── providers/           # Provider implementations
-    ├── openai_compat.py # OpenAI and compatible APIs
-    ├── cohere_embed.py  # Cohere embeddings
-    ├── cohere_rerank.py # Cohere reranking
-    ├── jina_rerank.py   # Jina reranking
-    ├── caikit_embed.py  # Caikit (OpenShift AI)
-    └── caikit_rerank.py # Caikit reranking
-```
-
-**Usage in services:**
 ```python
 from rag_core import embed_texts, rerank_documents, get_embedding_model
-```
-
-## Directory Structure
-
-Each Python service follows this structure:
-
-```
-<service_name>/
-├── app.py              # FastAPI entrypoint
-├── lib/                # Business logic modules
-│   ├── config.py       # Service-specific config
-│   └── <module>.py     # Core functionality
-├── requirements.txt    # Python dependencies
-├── Containerfile       # Container build instructions
-├── manifests/          # OpenShift deployment YAML
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   └── route.yaml
-├── .env                # Local development env vars
-└── README.md           # Service-specific docs
-```
-
-The Go chunker service has a different structure:
-
-```
-chunker_service/
-├── cmd/
-│   ├── chunker/        # CLI binary
-│   └── chunker-server/ # HTTP server
-├── pkg/
-│   └── chunking/       # Core chunking logic
-├── go.mod
-├── Containerfile
-└── manifests/
 ```
 
 ## Build Types

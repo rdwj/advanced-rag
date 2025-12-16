@@ -2,6 +2,8 @@
 
 FastAPI microservice for evaluating RAG answer quality using LLM-based assessment.
 
+Part of [Advanced RAG Services](../README.md).
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
@@ -109,25 +111,3 @@ curl -s "https://${EVAL_URL}/healthz" | jq .
 ```
 http://evaluator-service.advanced-rag.svc.cluster.local:8000
 ```
-
-## File Structure
-
-```
-services/evaluator_service/
-├── app.py              # FastAPI application
-├── lib/                # Self-contained library modules
-│   ├── __init__.py
-│   ├── config.py       # Configuration and client setup
-│   └── evaluate.py     # Core evaluation logic
-├── requirements.txt    # Python dependencies
-├── Containerfile       # Container build (self-contained)
-├── manifests/
-│   └── deployment.yaml # OpenShift deployment
-└── README.md           # This file
-```
-
-## Notes
-
-- Service is self-contained for future repo separation
-- All dependencies are local to the service directory
-- No external python/ directory required

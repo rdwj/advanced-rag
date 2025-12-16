@@ -2,6 +2,8 @@
 
 Deploy PostgreSQL with the pgvector extension on OpenShift for vector similarity search.
 
+See [parent README](../README.md) for local development setup.
+
 ## Quick Deploy
 
 ```bash

@@ -1,6 +1,8 @@
 # Meilisearch
 
-Meilisearch is a fast, typo-tolerant search engine with native vector search support. Ideal for applications requiring both keyword and semantic search capabilities.
+Fast, typo-tolerant search engine with native vector search support. Ideal for applications requiring both keyword and semantic search capabilities.
+
+Part of [databases](../README.md).
 
 ## Features
 
@@ -8,22 +10,6 @@ Meilisearch is a fast, typo-tolerant search engine with native vector search sup
 - Native hybrid search (keyword + vector)
 - Simple REST API
 - Faceted search and filtering
-- Real-time indexing
-
-## Directory Structure
-
-```
-meilisearch/
-├── local/                  # Local development setup
-│   └── meili.sh            # Start/stop helper script
-└── openshift/              # OpenShift deployment
-    ├── kustomization.yaml  # Kustomize configuration
-    ├── deployment.yaml     # Deployment manifest
-    ├── service.yaml        # Service definition
-    ├── route.yaml          # External route
-    ├── secret.yaml         # Master key secret
-    └── pvc.yaml            # Persistent storage
-```
 
 ## Local Development
 

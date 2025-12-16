@@ -24,26 +24,6 @@ Document conversion service (PDF to Markdown/JSON) for RAG pipelines. Supports i
     └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Directory Structure
-
-```
-docling-serve/
-├── README.md                         # This file
-└── manifests/
-    ├── base/                         # Common resources
-    │   ├── kustomization.yaml
-    │   ├── deployment.yaml
-    │   ├── service.yaml
-    │   └── route.yaml
-    └── overlays/
-        ├── cpu/                      # CPU-only (dev/test)
-        │   ├── kustomization.yaml
-        │   └── namespace.yaml
-        └── gpu/                      # GPU-enabled (production)
-            ├── kustomization.yaml
-            └── namespace.yaml
-```
-
 ## Prerequisites
 
 - OpenShift cluster
@@ -80,34 +60,6 @@ oc apply -k manifests/overlays/gpu
 
 # Wait for rollout
 oc wait --for=condition=Available deployment/docling-serve -n docling-serve --timeout=180s
-```
-
-### Custom Namespace
-
-Create a new overlay for your target namespace:
-
-```bash
-mkdir -p manifests/overlays/my-namespace
-cat > manifests/overlays/my-namespace/kustomization.yaml <<EOF
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: my-namespace
-resources:
-- ../../base
-- namespace.yaml
-images:
-- name: ghcr.io/docling-project/docling-serve-cpu
-  newName: ghcr.io/docling-project/docling-serve-cpu
-EOF
-
-cat > manifests/overlays/my-namespace/namespace.yaml <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: my-namespace
-EOF
-
-oc apply -k manifests/overlays/my-namespace
 ```
 
 ## CPU vs GPU Comparison
@@ -215,59 +167,6 @@ curl -s "${DOCLING_HOST}/v1/result/${TASK_ID}" > result.json
 | `/v1/result/{task_id}`      | GET    | Get result       |
 | `/openapi.json`             | GET    | API spec         |
 
-## Production Hardening
-
-The base manifests include comments for production enhancements:
-
-### Pod Disruption Budget
-
-```yaml
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: docling-serve-pdb
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: docling-serve
-```
-
-### Network Policy
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: docling-serve-egress
-spec:
-  podSelector:
-    matchLabels:
-      app: docling-serve
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          app.kubernetes.io/name: granite-vision
-    ports:
-    - port: 8000
-```
-
-### Resource Quota
-
-```yaml
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: docling-serve-quota
-spec:
-  hard:
-    requests.cpu: "4"
-    requests.memory: 16Gi
-    limits.cpu: "8"
-    limits.memory: 32Gi
-```
-
 ## Troubleshooting
 
 ### Pod Pending
@@ -289,22 +188,12 @@ oc get nodes -l node-role.kubernetes.io/worker-gpu -o custom-columns=NAME:.metad
 oc logs -f deployment/docling-serve -n docling-serve
 ```
 
-## RAG Pipeline Integration
-
-### Internal Service URLs
+## Internal Service URLs
 
 | Service        | URL                                                             |
 | -------------- | --------------------------------------------------------------- |
 | docling-serve  | `http://docling-serve.docling-serve.svc.cluster.local:5001`   |
 | granite-vision | `http://granite-vision.granite-vision.svc.cluster.local:8000` |
-
-### Workflow
-
-1. **Ingest**: Submit documents with `do_picture_description=true`
-2. **Parse**: Extract text, tables, image descriptions from JSON
-3. **Chunk**: Split into semantic chunks
-4. **Embed**: Generate embeddings
-5. **Store**: Index in vector database
 
 ## Related Components
 

@@ -2,6 +2,8 @@
 
 FastAPI microservice providing a REST API for vector operations backed by Milvus. Exposes `/search` and `/upsert` endpoints with embedding generation via OpenAI or a configurable embedding service.
 
+Part of [Advanced RAG Services](../README.md).
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
@@ -144,25 +146,6 @@ If `AUTH_TOKEN` is set, requests must include:
 - `Authorization: Bearer <token>` header, or
 - `X-API-Key: <token>` header
 
-## File Structure
-
-```
-services/vector_gateway/
-├── app.py              # FastAPI application
-├── requirements.txt    # Python dependencies
-├── Containerfile       # Container build (UBI-based)
-├── Dockerfile          # Alternative container build
-├── manifests/
-│   └── deployment.yaml # OpenShift deployment manifests
-├── config.sample.json  # Sample config file
-└── README.md           # This file
-```
-
 ## Dependencies
 
-This service depends on `python/rag_pipeline/` modules:
-- `embed.py` - Embedding generation
-- `milvus_io.py` - Milvus operations
-- `config.py` - Configuration helpers
-
-When reorganizing the repo, ensure these modules remain accessible or are copied into the service.
+This service depends on `python/rag_pipeline/` modules for embedding generation and Milvus operations. Build from the repository root (not from within this directory).
