@@ -1,0 +1,75 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    description: vLLM Embedding ServingRuntime for embedding models (--task embed)
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/model-type: '["embedding"]'
+    opendatahub.io/modelServingSupport: '["single"]'
+    openshift.io/display-name: vLLM Embedding Runtime for KServe
+    openshift.io/provider-display-name: vLLM Community
+    tags: rhods,rhoai,kserve,servingruntime,vllm,embedding
+    template.openshift.io/documentation-url: https://docs.vllm.ai/
+    template.openshift.io/long-description: >-
+      This template defines resources needed to deploy vLLM for serving
+      embedding models (sentence-transformers, etc.) with KServe in Red Hat OpenShift AI.
+      Uses --task=embed for pooling model support.
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: vllm-embedding-runtime
+  namespace: redhat-ods-applications
+objects:
+- apiVersion: serving.kserve.io/v1alpha1
+  kind: ServingRuntime
+  metadata:
+    annotations:
+      opendatahub.io/apiProtocol: REST
+      opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+      openshift.io/display-name: vLLM Embedding Runtime
+    labels:
+      opendatahub.io/dashboard: "true"
+    name: vllm-embedding-runtime
+  spec:
+    annotations:
+      prometheus.io/path: /metrics
+      prometheus.io/port: "8080"
+    containers:
+    - args:
+      - --port=8080
+      - --model=/mnt/models
+      - --served-model-name={{.Name}}
+      - --task=embed
+      - --dtype=float16
+      - --gpu-memory-utilization=0.3
+      command:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+      env:
+      - name: HOME
+        value: /tmp/home
+      - name: HF_HOME
+        value: /tmp/hf_home
+      - name: HF_HUB_OFFLINE
+        value: "1"
+      - name: VLLM_NO_USAGE_STATS
+        value: "1"
+      - name: XDG_CACHE_HOME
+        value: /tmp/cache
+      image: vllm/vllm-openai:latest
+      name: kserve-container
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      volumeMounts:
+      - mountPath: /dev/shm
+        name: shm
+    multiModel: false
+    supportedModelFormats:
+    - autoSelect: true
+      name: vLLM
+    volumes:
+    - emptyDir:
+        medium: Memory
+        sizeLimit: 2Gi
+      name: shm

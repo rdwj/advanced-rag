@@ -1,0 +1,32 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: minilm-embedding
+  namespace: vllm-embeddings
+  annotations:
+    openshift.io/display-name: MiniLM Embedding (vLLM)
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: vllm-embedding
+      runtime: vllm-embedding-runtime
+      args:
+        - --model=sentence-transformers/all-MiniLM-L6-v2
+        - --max-model-len=256
+      resources:
+        requests:
+          cpu: "2"
+          memory: 4Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "4"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

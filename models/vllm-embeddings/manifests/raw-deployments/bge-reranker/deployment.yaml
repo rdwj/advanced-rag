@@ -1,0 +1,120 @@
+# Alternative: BGE Reranker (explicitly supported in vLLM docs)
+# Use this if ms-marco-MiniLM-L12-v2 doesn't work
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bge-reranker
+  namespace: vllm-embeddings
+  labels:
+    app: bge-reranker
+    model-type: reranker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bge-reranker
+  template:
+    metadata:
+      labels:
+        app: bge-reranker
+        model-type: reranker
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest
+          args:
+            - --model
+            - BAAI/bge-reranker-v2-m3
+            - --task
+            - score
+            - --port
+            - "8000"
+            - --max-model-len
+            - "512"
+            - --dtype
+            - float16
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            - name: HF_HOME
+              value: /models/huggingface
+            - name: TRANSFORMERS_CACHE
+              value: /models/huggingface
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: vllm-model-cache
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bge-reranker
+  namespace: vllm-embeddings
+  labels:
+    app: bge-reranker
+spec:
+  selector:
+    app: bge-reranker
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: bge-reranker
+  namespace: vllm-embeddings
+  labels:
+    app: bge-reranker
+spec:
+  to:
+    kind: Service
+    name: bge-reranker
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

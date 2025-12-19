@@ -1,0 +1,16 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: bge-reranker
+  namespace: vllm-embeddings
+  labels:
+    app: bge-reranker
+spec:
+  to:
+    kind: Service
+    name: bge-reranker
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

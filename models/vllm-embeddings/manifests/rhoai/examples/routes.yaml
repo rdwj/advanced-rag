@@ -1,0 +1,53 @@
+---
+# Routes for KServe InferenceServices in RawDeployment mode
+# KServe RawDeployment doesn't auto-create routes, so we create them manually
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: minilm-embedding
+  namespace: vllm-embeddings
+  labels:
+    serving.kserve.io/inferenceservice: minilm-embedding
+spec:
+  to:
+    kind: Service
+    name: minilm-embedding-metrics
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: granite-embedding
+  namespace: vllm-embeddings
+  labels:
+    serving.kserve.io/inferenceservice: granite-embedding
+spec:
+  to:
+    kind: Service
+    name: granite-embedding-metrics
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: msmarco-reranker
+  namespace: vllm-embeddings
+  labels:
+    serving.kserve.io/inferenceservice: msmarco-reranker
+spec:
+  to:
+    kind: Service
+    name: msmarco-reranker-metrics
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

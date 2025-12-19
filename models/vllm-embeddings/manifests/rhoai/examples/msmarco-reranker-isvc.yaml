@@ -1,0 +1,32 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: msmarco-reranker
+  namespace: vllm-embeddings
+  annotations:
+    openshift.io/display-name: MS-MARCO Reranker (vLLM)
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: vllm-reranker
+      runtime: vllm-reranker-runtime
+      args:
+        - --model=cross-encoder/ms-marco-MiniLM-L12-v2
+        - --max-model-len=512
+      resources:
+        requests:
+          cpu: "2"
+          memory: 4Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "4"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
