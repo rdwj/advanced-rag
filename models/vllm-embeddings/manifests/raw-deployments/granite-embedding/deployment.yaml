@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: granite-embedding
+  namespace: vllm-embeddings
+  labels:
+    app: granite-embedding
+    model-type: embedding
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: granite-embedding
+  template:
+    metadata:
+      labels:
+        app: granite-embedding
+        model-type: embedding
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest
+          args:
+            - --model
+            - ibm-granite/granite-embedding-278m-multilingual
+            - --task
+            - embed
+            - --port
+            - "8000"
+            - --max-model-len
+            - "512"
+            - --dtype
+            - float16
+            - --gpu-memory-utilization
+            - "0.3"
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /tmp/home
+            - name: HF_HOME
+              value: /models/huggingface
+            - name: TRANSFORMERS_CACHE
+              value: /models/huggingface
+            - name: VLLM_CACHE_DIR
+              value: /models/vllm-cache
+            - name: XDG_CACHE_HOME
+              value: /tmp/cache
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+            - name: tmp-cache
+              mountPath: /tmp/cache
+            - name: tmp-home
+              mountPath: /tmp/home
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: vllm-model-cache
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        - name: tmp-cache
+          emptyDir: {}
+        - name: tmp-home
+          emptyDir: {}
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

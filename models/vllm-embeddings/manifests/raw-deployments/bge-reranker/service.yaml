@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bge-reranker
+  namespace: vllm-embeddings
+  labels:
+    app: bge-reranker
+spec:
+  selector:
+    app: bge-reranker
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP
