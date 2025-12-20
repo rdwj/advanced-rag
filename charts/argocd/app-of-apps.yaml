@@ -1,0 +1,36 @@
+# ============================================================================
+# Advanced RAG - ArgoCD App of Apps
+# ============================================================================
+# This Application deploys all RAG infrastructure components in the correct
+# order using sync waves.
+#
+# Sync Wave Order:
+#   Wave 0: Foundation (Milvus, Valkey)
+#   Wave 1: Models (vLLM embeddings/rerankers)
+#   Wave 2: Document Processing (Docling)
+#   Wave 3: Services (RAG microservices)
+# ============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: advanced-rag
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR-ORG/advanced-rag.git
+    targetRevision: HEAD
+    path: charts/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true

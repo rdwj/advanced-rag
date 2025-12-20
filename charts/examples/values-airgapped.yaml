@@ -1,0 +1,80 @@
+# ============================================================================
+# AIR-GAPPED DEPLOYMENT
+# ============================================================================
+# Configuration for air-gapped/disconnected environments.
+#
+# Prerequisites:
+# 1. Mirror all images to your internal registry
+# 2. Download and host Helm chart dependencies internally
+# 3. Pre-download ML models and host in internal model registry
+# ============================================================================
+
+# Internal registry configuration
+# Replace with your actual internal registry
+internalRegistry: "registry.internal.example.com"
+
+# --- rag-milvus ---
+milvus:
+  image:
+    repository: registry.internal.example.com/milvus/milvus
+    tag: "v2.6.7"
+  etcd:
+    image:
+      repository: registry.internal.example.com/coreos/etcd
+  minio:
+    image:
+      repository: registry.internal.example.com/minio/minio
+
+# --- rag-valkey ---
+image:
+  repository: registry.internal.example.com/bitnami/valkey
+  tag: "8.0"
+
+# --- rag-vllm-embeddings ---
+image:
+  repository: registry.internal.example.com/vllm/vllm-openai
+  tag: "v0.6.6"
+
+# Override model paths to use internal model server
+embeddings:
+  minilm:
+    enabled: true
+    # Point to internally-hosted model
+    model: "/models/sentence-transformers/all-MiniLM-L6-v2"
+    modelSource: "local"  # Use pre-downloaded model
+  granite:
+    enabled: false
+
+rerankers:
+  msmarco:
+    enabled: true
+    model: "/models/cross-encoder/ms-marco-MiniLM-L12-v2"
+    modelSource: "local"
+
+# Mount pre-downloaded models
+modelCache:
+  enabled: true
+  # Use existing PVC with pre-downloaded models
+  existingClaim: "rag-models-pvc"
+
+# --- rag-docling ---
+image:
+  repository: registry.internal.example.com/ds4sd/docling-serve
+  tag: "v2.20.0"
+
+# --- rag-services ---
+imageRegistry:
+  internal: false
+  external: "registry.internal.example.com/advanced-rag"
+  pullPolicy: IfNotPresent
+
+# Disable external LLM providers
+dependencies:
+  llm:
+    provider: "vllm"
+    url: "http://internal-llm.internal.svc.cluster.local:8000"
+    model: "internal-model"
+
+# Image pull secrets for internal registry
+imagePullSecrets:
+  - name: internal-registry-credentials

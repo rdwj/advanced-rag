@@ -1,0 +1,21 @@
+{{- if and .Values.enabled .Values.openshift.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-docling.fullname" . }}
+  labels:
+    {{- include "rag-docling.labels" . | nindent 4 }}
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-docling.fullname" . }}
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}

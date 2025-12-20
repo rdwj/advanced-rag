@@ -1,0 +1,92 @@
+name: Helm Release
+
+on:
+  push:
+    tags:
+      - 'charts-v*'
+  workflow_dispatch:
+    inputs:
+      chart:
+        description: 'Chart to release (all, rag-milvus, rag-valkey, rag-vllm-embeddings, rag-docling, rag-services)'
+        required: true
+        default: 'all'
+
+env:
+  REGISTRY: quay.io
+  REGISTRY_ORG: your-org  # Change to your Quay.io organization
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Add Helm repos
+        run: |
+          helm repo add milvus https://zilliztech.github.io/milvus-helm/
+          helm repo update
+
+      - name: Login to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Package and push charts
+        run: |
+          CHARTS="${{ github.event.inputs.chart || 'all' }}"
+
+          push_chart() {
+            local chart_dir=$1
+            local chart_name=$(basename $chart_dir)
+
+            echo "=== Packaging $chart_name ==="
+
+            # Update dependencies if needed
+            if [ -f "$chart_dir/Chart.lock" ]; then
+              helm dependency update $chart_dir
+            fi
+
+            # Package the chart
+            helm package $chart_dir -d /tmp/charts
+
+            # Get the version from Chart.yaml
+            VERSION=$(grep '^version:' $chart_dir/Chart.yaml | awk '{print $2}')
+
+            # Push to OCI registry
+            echo "=== Pushing $chart_name:$VERSION to $REGISTRY/$REGISTRY_ORG ==="
+            helm push /tmp/charts/$chart_name-$VERSION.tgz oci://$REGISTRY/$REGISTRY_ORG
+
+            echo "✓ $chart_name:$VERSION published"
+          }
+
+          if [ "$CHARTS" = "all" ]; then
+            for chart in charts/rag-*; do
+              push_chart $chart
+            done
+          else
+            push_chart "charts/$CHARTS"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Published Charts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Chart | Version | Registry |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|----------|" >> $GITHUB_STEP_SUMMARY
+          for chart in charts/rag-*; do
+            name=$(basename $chart)
+            version=$(grep '^version:' $chart/Chart.yaml | awk '{print $2}')
+            echo "| $name | $version | oci://$REGISTRY/$REGISTRY_ORG/$name |" >> $GITHUB_STEP_SUMMARY
+          done

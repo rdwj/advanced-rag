@@ -1,0 +1,94 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-valkey.fullname" . }}
+  labels:
+    {{- include "rag-valkey.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- if .Values.persistence.enabled }}
+  strategy:
+    type: Recreate  # Required for single-instance with PVC
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "rag-valkey.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "rag-valkey.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: valkey
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: valkey
+              containerPort: 6379
+              protocol: TCP
+          env:
+            {{- if .Values.auth.enabled }}
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rag-valkey.secretName" . }}
+                  key: {{ include "rag-valkey.secretKey" . }}
+            {{- else }}
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
+            {{- end }}
+            - name: VALKEY_AOF_ENABLED
+              value: {{ ternary "yes" "no" .Values.config.aofEnabled | quote }}
+            - name: VALKEY_RDB_POLICY_DISABLED
+              value: {{ ternary "yes" "no" (not .Values.config.rdbEnabled) | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/valkey/data
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                {{- if .Values.auth.enabled }}
+                - valkey-cli -a $VALKEY_PASSWORD ping | grep -q PONG
+                {{- else }}
+                - valkey-cli ping | grep -q PONG
+                {{- end }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                {{- if .Values.auth.enabled }}
+                - valkey-cli -a $VALKEY_PASSWORD ping | grep -q PONG
+                {{- else }}
+                - valkey-cli ping | grep -q PONG
+                {{- end }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "rag-valkey.fullname" . }}-data
+      {{- end }}
+      restartPolicy: Always
+{{- end }}

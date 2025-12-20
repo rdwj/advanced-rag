@@ -1,0 +1,147 @@
+# ============================================================================
+# PRODUCTION DEPLOYMENT
+# ============================================================================
+# Production-ready configuration with:
+# - Multiple replicas for high availability
+# - Increased resource limits
+# - Production-grade storage
+# - Multiple embedding models
+# ============================================================================
+
+# --- rag-milvus ---
+milvus:
+  mode: standalone
+  standalone:
+    replicas: 1
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "4"
+        memory: 16Gi
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: "gp3"  # Adjust for your cloud provider
+
+# --- rag-valkey ---
+# Enable for caching
+enabled: true
+replicas: 1
+persistence:
+  enabled: true
+  size: 10Gi
+auth:
+  enabled: true
+  # Create secret with password before deploying
+  existingSecret: "valkey-auth"
+  existingSecretPasswordKey: "password"
+
+# --- rag-vllm-embeddings ---
+embeddings:
+  minilm:
+    enabled: true
+    replicas: 2
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 8Gi
+  granite:
+    enabled: true
+    replicas: 1
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 16Gi
+
+rerankers:
+  msmarco:
+    enabled: true
+    replicas: 2
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 8Gi
+
+# Shared model cache - larger for production
+modelCache:
+  enabled: true
+  size: 50Gi
+
+# --- rag-docling ---
+replicas: 2
+resources:
+  requests:
+    cpu: "1"
+    memory: 4Gi
+  limits:
+    cpu: "4"
+    memory: 16Gi
+config:
+  workers: 8
+  timeout: 600
+gpu:
+  enabled: true
+  count: 1
+
+# --- rag-services ---
+chunker:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+plan:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "200m"
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+embedding:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "200m"
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+rerank:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "200m"
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+evaluator:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "200m"
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+gateway:
+  replicas: 3
+  resources:
+    requests:
+      cpu: "200m"
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi

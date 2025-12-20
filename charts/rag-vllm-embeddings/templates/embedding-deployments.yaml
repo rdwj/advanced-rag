@@ -1,0 +1,238 @@
+{{- if .Values.enabled }}
+{{- $root := . }}
+
+{{- /* MiniLM Embedding */ -}}
+{{- if .Values.embeddings.minilm.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-minilm
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: minilm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-minilm
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-minilm
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: embedding
+        model: minilm
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --model
+            - {{ .Values.embeddings.minilm.model }}
+            - --task
+            - embed
+            - --port
+            - "8000"
+            - --max-model-len
+            - {{ .Values.embeddings.minilm.maxModelLen | quote }}
+            - --dtype
+            - float16
+            - --gpu-memory-utilization
+            - {{ .Values.gpu.memoryUtilization | quote }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            {{- include "rag-vllm-embeddings.commonEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.embeddings.minilm.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "rag-vllm-embeddings.commonVolumeMounts" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+      volumes:
+        {{- include "rag-vllm-embeddings.commonVolumes" . | nindent 8 }}
+      {{- with .Values.gpu.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+{{- /* Granite Embedding */ -}}
+{{- if .Values.embeddings.granite.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-granite
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: granite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-granite
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-granite
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: embedding
+        model: granite
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --model
+            - {{ .Values.embeddings.granite.model }}
+            - --task
+            - embed
+            - --port
+            - "8000"
+            - --max-model-len
+            - {{ .Values.embeddings.granite.maxModelLen | quote }}
+            - --dtype
+            - float16
+            - --gpu-memory-utilization
+            - {{ .Values.gpu.memoryUtilization | quote }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            {{- include "rag-vllm-embeddings.commonEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.embeddings.granite.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "rag-vllm-embeddings.commonVolumeMounts" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+      volumes:
+        {{- include "rag-vllm-embeddings.commonVolumes" . | nindent 8 }}
+      {{- with .Values.gpu.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+{{- /* BGE Large Embedding */ -}}
+{{- if .Values.embeddings.bgeLarge.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-large
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: bge-large
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-bge-large
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-bge-large
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: embedding
+        model: bge-large
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --model
+            - {{ .Values.embeddings.bgeLarge.model }}
+            - --task
+            - embed
+            - --port
+            - "8000"
+            - --max-model-len
+            - {{ .Values.embeddings.bgeLarge.maxModelLen | quote }}
+            - --dtype
+            - float16
+            - --gpu-memory-utilization
+            - {{ .Values.gpu.memoryUtilization | quote }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            {{- include "rag-vllm-embeddings.commonEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.embeddings.bgeLarge.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "rag-vllm-embeddings.commonVolumeMounts" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+      volumes:
+        {{- include "rag-vllm-embeddings.commonVolumes" . | nindent 8 }}
+      {{- with .Values.gpu.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+{{- end }}

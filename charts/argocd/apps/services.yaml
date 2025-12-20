@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rag-services
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR-ORG/advanced-rag.git
+    targetRevision: HEAD
+    path: charts/rag-services
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        # Override namespace for service discovery
+        - name: namespace
+          value: rag-services
+        # Point to other services in their namespaces
+        - name: dependencies.milvus.host
+          value: milvus.rag-milvus.svc.cluster.local
+        - name: dependencies.embedding.url
+          value: http://rag-vllm-embeddings-minilm.rag-embeddings.svc.cluster.local:8000
+        - name: dependencies.reranker.url
+          value: http://rag-vllm-embeddings-msmarco.rag-embeddings.svc.cluster.local:8000
+        - name: dependencies.docling.url
+          value: http://rag-docling.rag-docling.svc.cluster.local:8000
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rag-services
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

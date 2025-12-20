@@ -1,0 +1,26 @@
+apiVersion: v2
+name: rag-valkey
+description: Valkey caching layer for Advanced RAG pipeline (Redis-compatible, BSD-3 licensed)
+type: application
+version: 0.1.0
+appVersion: "8.0"
+
+keywords:
+  - valkey
+  - redis
+  - cache
+  - rag
+  - openshift
+
+home: https://github.com/your-org/advanced-rag
+sources:
+  - https://github.com/your-org/advanced-rag
+  - https://github.com/valkey-io/valkey
+
+maintainers:
+  - name: Your Team
+    email: team@example.com
+
+annotations:
+  category: Database
+  licenses: BSD-3-Clause

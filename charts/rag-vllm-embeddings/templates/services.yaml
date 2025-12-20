@@ -1,0 +1,115 @@
+{{- if .Values.enabled }}
+
+{{- /* Embedding Services */ -}}
+{{- if .Values.embeddings.minilm.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-minilm
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: minilm
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-minilm
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- if .Values.embeddings.granite.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-granite
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: granite
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-granite
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- if .Values.embeddings.bgeLarge.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-large
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: bge-large
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-bge-large
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- /* Reranker Services */ -}}
+{{- if .Values.rerankers.msmarco.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-msmarco
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reranker
+    model: msmarco
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-msmarco
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- if .Values.rerankers.bge.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-reranker
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reranker
+    model: bge-reranker
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-bge-reranker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- end }}

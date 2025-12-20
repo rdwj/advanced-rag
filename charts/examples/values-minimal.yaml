@@ -1,0 +1,77 @@
+# ============================================================================
+# MINIMAL DEPLOYMENT
+# ============================================================================
+# Bare minimum configuration for testing/development.
+# - Single replica for all services
+# - Minimal resource requests
+# - Single embedding model only
+# ============================================================================
+
+# --- rag-milvus ---
+# Use standalone mode with minimal resources
+milvus:
+  mode: standalone
+  standalone:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: 512Mi
+
+# --- rag-vllm-embeddings ---
+# Only enable MiniLM embedding (smallest model)
+embeddings:
+  minilm:
+    enabled: true
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 4Gi
+  granite:
+    enabled: false
+  bgeLarge:
+    enabled: false
+
+rerankers:
+  msmarco:
+    enabled: true
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 4Gi
+  bge:
+    enabled: false
+
+# --- rag-docling ---
+# Minimal docling config
+replicas: 1
+resources:
+  requests:
+    cpu: "250m"
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+# --- rag-services ---
+# Minimal replicas
+chunker:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "25m"
+      memory: 32Mi
+
+plan:
+  replicas: 1
+
+embedding:
+  replicas: 1
+
+rerank:
+  replicas: 1
+
+evaluator:
+  replicas: 1
+
+gateway:
+  replicas: 1

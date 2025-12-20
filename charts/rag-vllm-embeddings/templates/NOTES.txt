@@ -1,0 +1,91 @@
+===============================================================================
+ RAG-VLLM-EMBEDDINGS: Model Deployment Summary
+===============================================================================
+
+Deployed models:
+
+EMBEDDING MODELS:
+{{- if .Values.embeddings.minilm.enabled }}
+  ✓ MiniLM ({{ .Values.embeddings.minilm.dimensions }} dimensions)
+    Model: {{ .Values.embeddings.minilm.model }}
+    Service: {{ include "rag-vllm-embeddings.fullname" . }}-minilm:8000
+{{- end }}
+{{- if .Values.embeddings.granite.enabled }}
+  ✓ Granite ({{ .Values.embeddings.granite.dimensions }} dimensions)
+    Model: {{ .Values.embeddings.granite.model }}
+    Service: {{ include "rag-vllm-embeddings.fullname" . }}-granite:8000
+{{- end }}
+{{- if .Values.embeddings.bgeLarge.enabled }}
+  ✓ BGE Large ({{ .Values.embeddings.bgeLarge.dimensions }} dimensions)
+    Model: {{ .Values.embeddings.bgeLarge.model }}
+    Service: {{ include "rag-vllm-embeddings.fullname" . }}-bge-large:8000
+{{- end }}
+{{- if not (or .Values.embeddings.minilm.enabled .Values.embeddings.granite.enabled .Values.embeddings.bgeLarge.enabled) }}
+  (none enabled)
+{{- end }}
+
+RERANKER MODELS:
+{{- if .Values.rerankers.msmarco.enabled }}
+  ✓ MS-MARCO
+    Model: {{ .Values.rerankers.msmarco.model }}
+    Service: {{ include "rag-vllm-embeddings.fullname" . }}-msmarco:8000
+{{- end }}
+{{- if .Values.rerankers.bge.enabled }}
+  ✓ BGE Reranker
+    Model: {{ .Values.rerankers.bge.model }}
+    Service: {{ include "rag-vllm-embeddings.fullname" . }}-bge-reranker:8000
+{{- end }}
+{{- if not (or .Values.rerankers.msmarco.enabled .Values.rerankers.bge.enabled) }}
+  (none enabled)
+{{- end }}
+
+-------------------------------------------------------------------------------
+CONNECTION INFO (for RAG services)
+-------------------------------------------------------------------------------
+
+{{- if .Values.embeddings.minilm.enabled }}
+Embedding (MiniLM):
+  EMBEDDING_URL=http://{{ include "rag-vllm-embeddings.fullname" . }}-minilm.{{ .Release.Namespace }}.svc.cluster.local:8000
+  EMBEDDING_MODEL={{ .Values.embeddings.minilm.model }}
+  EMBEDDING_DIMENSIONS={{ .Values.embeddings.minilm.dimensions }}
+{{- else if .Values.embeddings.granite.enabled }}
+Embedding (Granite):
+  EMBEDDING_URL=http://{{ include "rag-vllm-embeddings.fullname" . }}-granite.{{ .Release.Namespace }}.svc.cluster.local:8000
+  EMBEDDING_MODEL={{ .Values.embeddings.granite.model }}
+  EMBEDDING_DIMENSIONS={{ .Values.embeddings.granite.dimensions }}
+{{- end }}
+
+{{- if .Values.rerankers.msmarco.enabled }}
+Reranker (MS-MARCO):
+  RERANKER_URL=http://{{ include "rag-vllm-embeddings.fullname" . }}-msmarco.{{ .Release.Namespace }}.svc.cluster.local:8000
+  RERANKER_MODEL={{ .Values.rerankers.msmarco.model }}
+{{- else if .Values.rerankers.bge.enabled }}
+Reranker (BGE):
+  RERANKER_URL=http://{{ include "rag-vllm-embeddings.fullname" . }}-bge-reranker.{{ .Release.Namespace }}.svc.cluster.local:8000
+  RERANKER_MODEL={{ .Values.rerankers.bge.model }}
+{{- end }}
+
+-------------------------------------------------------------------------------
+VERIFY DEPLOYMENT
+-------------------------------------------------------------------------------
+
+Watch pods come up (first load downloads models, may take 5-10 mins):
+  oc get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+{{- if .Values.embeddings.minilm.enabled }}
+
+Test MiniLM embeddings:
+  curl -sk https://$(oc get route {{ include "rag-vllm-embeddings.fullname" . }}-minilm -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')/v1/embeddings \
+    -H "Content-Type: application/json" \
+    -d '{"input": "Hello world", "model": "{{ .Values.embeddings.minilm.model }}"}'
+{{- end }}
+
+{{- if .Values.rerankers.msmarco.enabled }}
+
+Test MS-MARCO reranker:
+  curl -sk https://$(oc get route {{ include "rag-vllm-embeddings.fullname" . }}-msmarco -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')/v1/score \
+    -H "Content-Type: application/json" \
+    -d '{"model": "{{ .Values.rerankers.msmarco.model }}", "text_1": "What is AI?", "text_2": "Artificial intelligence is..."}'
+{{- end }}
+
+===============================================================================

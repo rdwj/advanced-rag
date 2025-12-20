@@ -1,0 +1,58 @@
+===============================================================================
+ RAG-VALKEY: Caching Layer Deployed
+===============================================================================
+
+Valkey {{ .Chart.AppVersion }} has been deployed.
+
+-------------------------------------------------------------------------------
+CONNECTION INFO
+-------------------------------------------------------------------------------
+
+Internal (for services in the cluster):
+  Host: {{ include "rag-valkey.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  Port: 6379
+
+Set these environment variables in your RAG services:
+  REDIS_HOST={{ include "rag-valkey.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  REDIS_PORT=6379
+
+{{- if .Values.auth.enabled }}
+
+Password:
+{{- if .Values.auth.existingSecret }}
+  Using existing secret: {{ .Values.auth.existingSecret }}
+{{- else if .Values.auth.password }}
+  Password configured via values
+{{- else }}
+  Auto-generated. Retrieve with:
+    oc get secret {{ include "rag-valkey.secretName" . }} -n {{ .Release.Namespace }} \
+      -o jsonpath='{.data.password}' | base64 -d
+{{- end }}
+
+Connection URL (for applications):
+  redis://:$(PASSWORD)@{{ include "rag-valkey.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:6379/0
+{{- else }}
+
+Authentication is DISABLED. For production, enable auth in values.yaml.
+{{- end }}
+
+-------------------------------------------------------------------------------
+VERIFY DEPLOYMENT
+-------------------------------------------------------------------------------
+
+Watch pod come up:
+  oc get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+Quick connectivity test:
+{{- if .Values.auth.enabled }}
+  PASSWORD=$(oc get secret {{ include "rag-valkey.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.password}' | base64 -d)
+  oc run valkey-test --rm -it --restart=Never -n {{ .Release.Namespace }} \
+    --image=docker.io/bitnami/valkey:{{ .Values.image.tag }} -- \
+    valkey-cli -h {{ include "rag-valkey.fullname" . }} -a "$PASSWORD" ping
+{{- else }}
+  oc run valkey-test --rm -it --restart=Never -n {{ .Release.Namespace }} \
+    --image=docker.io/bitnami/valkey:{{ .Values.image.tag }} -- \
+    valkey-cli -h {{ include "rag-valkey.fullname" . }} ping
+{{- end }}
+
+===============================================================================

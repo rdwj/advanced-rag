@@ -1,0 +1,19 @@
+{{- if and .Values.enabled .Values.openshift.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-milvus.fullname" . }}
+  labels:
+    {{- include "rag-milvus.labels" . | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-milvus.serviceName" . }}
+    weight: 100
+  port:
+    targetPort: 19530
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}

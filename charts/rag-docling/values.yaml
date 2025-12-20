@@ -1,0 +1,117 @@
+# ============================================================================
+# RAG-DOCLING: Document Conversion Service
+# ============================================================================
+# Docling converts PDFs, DOCX, HTML, and other documents to markdown/text
+# for downstream RAG processing.
+#
+# Image source: quay.io/ds4sd/docling-serve
+# ============================================================================
+
+# Enable/disable the entire chart
+enabled: true
+
+# ----------------------------------------------------------------------------
+# IMAGE CONFIGURATION
+# ----------------------------------------------------------------------------
+image:
+  repository: quay.io/ds4sd/docling-serve
+  tag: "v2.20.0"
+  pullPolicy: IfNotPresent
+
+# Image pull secrets (for private registries)
+imagePullSecrets: []
+
+# ----------------------------------------------------------------------------
+# DEPLOYMENT CONFIGURATION
+# ----------------------------------------------------------------------------
+replicas: 1
+
+# Service port
+port: 8000
+
+# Resource allocation
+# Note: Docling can be CPU-intensive for large documents
+resources:
+  requests:
+    cpu: "500m"
+    memory: 2Gi
+  limits:
+    cpu: "4"
+    memory: 8Gi
+
+# Health check configuration
+healthCheck:
+  path: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# ----------------------------------------------------------------------------
+# DOCLING CONFIGURATION
+# ----------------------------------------------------------------------------
+config:
+  # Number of worker threads for document processing
+  workers: 4
+
+  # Request timeout in seconds (large PDFs may take time)
+  timeout: 300
+
+  # Enable OCR for scanned documents
+  ocrEnabled: true
+
+  # Enable table extraction
+  tableExtraction: true
+
+# ----------------------------------------------------------------------------
+# STORAGE CONFIGURATION
+# ----------------------------------------------------------------------------
+# Temporary storage for document processing
+persistence:
+  enabled: false
+  # Size of temporary storage
+  size: 10Gi
+  # Storage class (leave empty for default)
+  storageClass: ""
+  # Access modes
+  accessModes:
+    - ReadWriteOnce
+
+# ----------------------------------------------------------------------------
+# GPU CONFIGURATION (Optional)
+# ----------------------------------------------------------------------------
+# Enable GPU acceleration for faster OCR/table extraction
+gpu:
+  enabled: false
+  # Number of GPUs to request
+  count: 1
+  # GPU tolerations for scheduling
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+
+# ----------------------------------------------------------------------------
+# OPENSHIFT INTEGRATION
+# ----------------------------------------------------------------------------
+openshift:
+  route:
+    enabled: true
+    tls:
+      termination: edge
+    # Extended timeout for large document processing
+    timeout: "300s"
+
+# ----------------------------------------------------------------------------
+# ADVANCED CONFIGURATION
+# ----------------------------------------------------------------------------
+# Pod annotations
+podAnnotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations (non-GPU)
+tolerations: []
+
+# Affinity rules
+affinity: {}

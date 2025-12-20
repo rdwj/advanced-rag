@@ -1,0 +1,30 @@
+apiVersion: v2
+name: rag-milvus
+description: Milvus vector database for Advanced RAG pipeline (OpenShift-optimized)
+type: application
+version: 0.1.0
+appVersion: "2.6.7"
+
+keywords:
+  - milvus
+  - vector-database
+  - rag
+  - openshift
+
+home: https://github.com/your-org/advanced-rag
+sources:
+  - https://github.com/your-org/advanced-rag
+
+maintainers:
+  - name: Your Team
+    email: team@example.com
+
+dependencies:
+  - name: milvus
+    version: "5.0.10"
+    repository: https://zilliztech.github.io/milvus-helm/
+    condition: milvus.enabled
+
+annotations:
+  category: Database
+  licenses: Apache-2.0

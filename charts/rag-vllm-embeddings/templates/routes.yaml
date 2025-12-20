@@ -1,0 +1,120 @@
+{{- if and .Values.enabled .Values.openshift.route.enabled }}
+
+{{- /* Embedding Routes */ -}}
+{{- if .Values.embeddings.minilm.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-minilm
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: minilm
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-vllm-embeddings.fullname" . }}-minilm
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- if .Values.embeddings.granite.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-granite
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: granite
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-vllm-embeddings.fullname" . }}-granite
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- if .Values.embeddings.bgeLarge.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-large
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+    model: bge-large
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-large
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- /* Reranker Routes */ -}}
+{{- if .Values.rerankers.msmarco.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-msmarco
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reranker
+    model: msmarco
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-vllm-embeddings.fullname" . }}-msmarco
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- if .Values.rerankers.bge.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-reranker
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reranker
+    model: bge-reranker
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-reranker
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- end }}
