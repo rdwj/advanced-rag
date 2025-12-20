@@ -1,0 +1,17 @@
+{{- if and .Values.enabled .Values.modelCache.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "rag-vllm-embeddings.pvcName" . }}
+  labels:
+    {{- include "rag-vllm-embeddings.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.modelCache.size }}
+  {{- if .Values.modelCache.storageClass }}
+  storageClassName: {{ .Values.modelCache.storageClass | quote }}
+  {{- end }}
+{{- end }}

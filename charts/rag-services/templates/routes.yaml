@@ -1,0 +1,153 @@
+{{- if and .Values.enabled .Values.openshift.route.enabled }}
+
+{{- /* Chunker Service Route */ -}}
+{{- if .Values.chunker.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-services.fullname" . }}-chunker
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: chunker
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-services.fullname" . }}-chunker
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- /* Plan Service Route */ -}}
+{{- if .Values.plan.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-services.fullname" . }}-plan
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: plan
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-services.fullname" . }}-plan
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- /* Embedding Service Route */ -}}
+{{- if .Values.embedding.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-services.fullname" . }}-embedding
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-services.fullname" . }}-embedding
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- /* Rerank Service Route */ -}}
+{{- if .Values.rerank.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-services.fullname" . }}-rerank
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rerank
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-services.fullname" . }}-rerank
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- /* Evaluator Service Route */ -}}
+{{- if .Values.evaluator.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-services.fullname" . }}-evaluator
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluator
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-services.fullname" . }}-evaluator
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- /* Vector Gateway Route */ -}}
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rag-services.fullname" . }}-gateway
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.openshift.route.timeout }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rag-services.fullname" . }}-gateway
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.openshift.route.tls.termination }}
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+
+{{- end }}

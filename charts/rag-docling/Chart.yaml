@@ -1,0 +1,25 @@
+apiVersion: v2
+name: rag-docling
+description: Docling document conversion service for RAG pipelines
+type: application
+version: 0.1.0
+appVersion: "2.20.0"
+
+keywords:
+  - docling
+  - document-conversion
+  - pdf
+  - rag
+  - openshift
+
+home: https://github.com/DS4SD/docling-serve
+sources:
+  - https://github.com/DS4SD/docling-serve
+
+maintainers:
+  - name: Your Team
+    email: team@example.com
+
+annotations:
+  category: AI/ML
+  licenses: MIT

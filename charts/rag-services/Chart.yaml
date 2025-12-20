@@ -1,0 +1,26 @@
+apiVersion: v2
+name: rag-services
+description: Advanced RAG microservices bundle (chunker, plan, embedding, rerank, evaluator, vector-gateway)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - rag
+  - microservices
+  - chunker
+  - embedding
+  - reranker
+  - openshift
+
+home: https://github.com/your-org/advanced-rag
+sources:
+  - https://github.com/your-org/advanced-rag
+
+maintainers:
+  - name: Your Team
+    email: team@example.com
+
+annotations:
+  category: AI/ML
+  licenses: MIT

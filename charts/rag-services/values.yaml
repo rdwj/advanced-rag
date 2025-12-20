@@ -1,0 +1,198 @@
+# ============================================================================
+# RAG-SERVICES: Microservices Bundle for Advanced RAG Pipeline
+# ============================================================================
+# Deploys all 6 RAG microservices as a cohesive unit.
+#
+# Prerequisites:
+#   1. Vector database deployed (rag-milvus or similar)
+#   2. Embedding/reranker models deployed (rag-vllm-embeddings)
+#   3. Secrets created for API keys (see secrets section below)
+# ============================================================================
+
+# Enable/disable the entire chart
+enabled: true
+
+# ----------------------------------------------------------------------------
+# IMAGE REGISTRY
+# ----------------------------------------------------------------------------
+# Where to pull service images from
+
+imageRegistry:
+  # Use OpenShift internal registry
+  internal: true
+  # Internal registry URL (auto-constructed if internal: true)
+  # Format: image-registry.openshift-image-registry.svc:5000/<namespace>/<image>:<tag>
+
+  # External registry (used if internal: false)
+  external: "quay.io/your-org"
+
+  # Image pull policy
+  pullPolicy: Always
+
+  # Image tag for all services (override per-service if needed)
+  tag: "latest"
+
+# ----------------------------------------------------------------------------
+# NAMESPACE CONFIGURATION
+# ----------------------------------------------------------------------------
+# Used for constructing internal service URLs
+
+namespace: "advanced-rag"
+
+# ----------------------------------------------------------------------------
+# SECRETS (User must create these before deploying)
+# ----------------------------------------------------------------------------
+# The chart references these secrets but does NOT create them.
+# Users must create secrets with the appropriate keys.
+#
+# Required secrets:
+#   oc create secret generic rag-api-keys \
+#     --from-literal=OPENAI_API_KEY="sk-..." \
+#     --from-literal=COHERE_API_KEY="..." \
+#     -n <namespace>
+
+secrets:
+  # Name of the secret containing API keys
+  apiKeys: "rag-api-keys"
+
+  # Keys expected in the secret:
+  # - OPENAI_API_KEY: For plan-service LLM calls (if using OpenAI)
+  # - COHERE_API_KEY: For rerank-service (if using Cohere)
+
+# ----------------------------------------------------------------------------
+# EXTERNAL DEPENDENCIES
+# ----------------------------------------------------------------------------
+# URLs for services this chart depends on
+
+dependencies:
+  # Milvus vector database
+  milvus:
+    host: "milvus.advanced-rag.svc.cluster.local"
+    port: "19530"
+
+  # Embedding service (from rag-vllm-embeddings chart)
+  embedding:
+    url: "http://rag-vllm-embeddings-minilm.advanced-rag.svc.cluster.local:8000"
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+    dimensions: 384
+
+  # Reranker service (from rag-vllm-embeddings chart)
+  reranker:
+    url: "http://rag-vllm-embeddings-msmarco.advanced-rag.svc.cluster.local:8000"
+    model: "cross-encoder/ms-marco-MiniLM-L12-v2"
+
+  # Docling document conversion
+  docling:
+    url: "http://docling-serve.docling-serve.svc.cluster.local:8000"
+
+  # LLM for plan generation (if using self-hosted)
+  llm:
+    # Use OpenAI API or self-hosted vLLM
+    provider: "openai"  # openai | vllm
+    # For OpenAI
+    model: "gpt-4o-mini"
+    # For self-hosted vLLM
+    url: ""  # e.g., http://gpt-oss.gpt-oss.svc.cluster.local:8000
+
+# ----------------------------------------------------------------------------
+# OPENSHIFT INTEGRATION
+# ----------------------------------------------------------------------------
+openshift:
+  route:
+    enabled: true
+    tls:
+      termination: edge
+    # Timeout for long-running requests (plan generation, large docs)
+    timeout: "120s"
+
+# ----------------------------------------------------------------------------
+# SERVICES CONFIGURATION
+# ----------------------------------------------------------------------------
+
+# Chunker Service (Go binary)
+chunker:
+  enabled: true
+  replicas: 1
+  port: 8080
+  image: "chunker-service"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: 64Mi
+    limits:
+      cpu: "500m"
+      memory: 256Mi
+
+# Plan Service (Python - LLM-based chunking plan generation)
+plan:
+  enabled: true
+  replicas: 1
+  port: 8000
+  image: "plan-service"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Embedding Service (Python - batch embedding wrapper)
+embedding:
+  enabled: true
+  replicas: 1
+  port: 8000
+  image: "embedding-service"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Rerank Service (Python - reranking wrapper)
+rerank:
+  enabled: true
+  replicas: 1
+  port: 8000
+  image: "rerank-service"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Evaluator Service (Python - RAG quality evaluation)
+evaluator:
+  enabled: true
+  replicas: 1
+  port: 8000
+  image: "evaluator-service"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Vector Gateway (Python - unified API for vector operations)
+gateway:
+  enabled: true
+  replicas: 1
+  port: 8000
+  image: "vector-gateway"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  config:
+    backend: "milvus"
+    collection: "rag_documents"
+    maxDocs: "100000"

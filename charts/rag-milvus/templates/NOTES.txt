@@ -1,0 +1,42 @@
+===============================================================================
+ RAG-MILVUS: Vector Database Deployed
+===============================================================================
+
+Milvus {{ .Chart.AppVersion }} has been deployed.
+
+IMPORTANT - Grant SCC permissions (if not already done):
+
+  oc adm policy add-scc-to-user anyuid -z default -n {{ .Release.Namespace }}
+  oc adm policy add-scc-to-user anyuid -z {{ .Release.Name }}-minio -n {{ .Release.Namespace }}
+
+-------------------------------------------------------------------------------
+CONNECTION INFO
+-------------------------------------------------------------------------------
+
+Internal (for services in the cluster):
+  Host: {{ include "rag-milvus.serviceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  Port: 19530
+
+Set these environment variables in your RAG services:
+  MILVUS_HOST={{ include "rag-milvus.serviceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  MILVUS_PORT=19530
+
+{{- if .Values.openshift.route.enabled }}
+
+External (via OpenShift Route):
+  oc get route {{ include "rag-milvus.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}'
+{{- end }}
+
+-------------------------------------------------------------------------------
+VERIFY DEPLOYMENT
+-------------------------------------------------------------------------------
+
+Watch pods come up:
+  oc get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+Quick connectivity test:
+  oc run milvus-test --rm -it --restart=Never -n {{ .Release.Namespace }} \
+    --image=python:3.11-slim -- \
+    sh -c "pip install pymilvus -q && python -c \"from pymilvus import connections; connections.connect(host='{{ include "rag-milvus.serviceName" . }}', port='19530'); print('SUCCESS: Connected to Milvus')\""
+
+===============================================================================

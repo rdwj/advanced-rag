@@ -1,0 +1,82 @@
+# ============================================================================
+# RAG-VALKEY: Caching Layer for Advanced RAG Pipeline
+# ============================================================================
+# Valkey is the Linux Foundation fork of Redis with BSD-3 license.
+# API-compatible drop-in replacement for Redis.
+# ============================================================================
+
+# Enable/disable the chart (for umbrella chart control)
+enabled: true
+
+# ----------------------------------------------------------------------------
+# IMAGE
+# ----------------------------------------------------------------------------
+image:
+  repository: docker.io/bitnami/valkey
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+
+# ----------------------------------------------------------------------------
+# AUTHENTICATION
+# ----------------------------------------------------------------------------
+auth:
+  # Enable password authentication (recommended)
+  enabled: true
+
+  # Password for Valkey (leave empty to auto-generate)
+  # For production, pre-create a secret:
+  #   oc create secret generic <release>-valkey-credentials \
+  #     --from-literal=password="your-secure-password"
+  password: ""
+
+  # Use existing secret instead of creating one
+  existingSecret: ""
+  existingSecretPasswordKey: "password"
+
+# ----------------------------------------------------------------------------
+# PERSISTENCE
+# ----------------------------------------------------------------------------
+persistence:
+  enabled: true
+  size: 5Gi
+  # storageClass: ""  # Use default if empty
+  accessMode: ReadWriteOnce
+
+# ----------------------------------------------------------------------------
+# RESOURCES
+# ----------------------------------------------------------------------------
+resources:
+  requests:
+    cpu: "100m"
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# ----------------------------------------------------------------------------
+# VALKEY CONFIGURATION
+# ----------------------------------------------------------------------------
+config:
+  # Enable Append Only File for durability
+  aofEnabled: true
+  # Enable RDB snapshots
+  rdbEnabled: true
+  # Max memory policy (allkeys-lru recommended for caching)
+  maxMemoryPolicy: "allkeys-lru"
+
+# ----------------------------------------------------------------------------
+# OPENSHIFT INTEGRATION
+# ----------------------------------------------------------------------------
+openshift:
+  # Create Route for external access (usually not needed for cache)
+  route:
+    enabled: false
+    tls:
+      termination: edge
+
+# ----------------------------------------------------------------------------
+# HIGH AVAILABILITY (future)
+# ----------------------------------------------------------------------------
+# For production, consider deploying Valkey in Sentinel or Cluster mode
+# This chart currently supports standalone mode only
+replicaCount: 1

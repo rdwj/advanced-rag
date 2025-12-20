@@ -1,0 +1,135 @@
+{{- if .Values.enabled }}
+
+{{- /* Chunker Service */ -}}
+{{- if .Values.chunker.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-services.fullname" . }}-chunker
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: chunker
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.chunker.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-services.name" . }}-chunker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- /* Plan Service */ -}}
+{{- if .Values.plan.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-services.fullname" . }}-plan
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: plan
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.plan.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-services.name" . }}-plan
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- /* Embedding Service */ -}}
+{{- if .Values.embedding.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-services.fullname" . }}-embedding
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.embedding.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-services.name" . }}-embedding
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- /* Rerank Service */ -}}
+{{- if .Values.rerank.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-services.fullname" . }}-rerank
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rerank
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.rerank.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-services.name" . }}-rerank
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- /* Evaluator Service */ -}}
+{{- if .Values.evaluator.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-services.fullname" . }}-evaluator
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluator
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.evaluator.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-services.name" . }}-evaluator
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- /* Vector Gateway Service */ -}}
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-services.fullname" . }}-gateway
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.gateway.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "rag-services.name" . }}-gateway
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- end }}

@@ -1,0 +1,27 @@
+apiVersion: v2
+name: rag-vllm-embeddings
+description: vLLM-based embedding and reranker models for Advanced RAG pipeline
+type: application
+version: 0.1.0
+appVersion: "0.6.6"
+
+keywords:
+  - vllm
+  - embeddings
+  - reranker
+  - rag
+  - openshift
+  - gpu
+
+home: https://github.com/your-org/advanced-rag
+sources:
+  - https://github.com/your-org/advanced-rag
+  - https://github.com/vllm-project/vllm
+
+maintainers:
+  - name: Your Team
+    email: team@example.com
+
+annotations:
+  category: AI/ML
+  licenses: Apache-2.0

@@ -1,0 +1,342 @@
+{{- if .Values.enabled }}
+
+{{- /* Chunker Service Deployment (Go) */ -}}
+{{- if .Values.chunker.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-services.fullname" . }}-chunker
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: chunker
+spec:
+  replicas: {{ .Values.chunker.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-services.name" . }}-chunker
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-services.name" . }}-chunker
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: chunker
+    spec:
+      securityContext:
+        {{- include "rag-services.securityContext" . | nindent 8 }}
+      containers:
+        - name: chunker
+          image: {{ include "rag-services.image" (dict "image" .Values.chunker.image "tag" .Values.imageRegistry.tag "namespace" .Values.namespace "internal" .Values.imageRegistry.internal "external" .Values.imageRegistry.external) }}
+          imagePullPolicy: {{ .Values.imageRegistry.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.chunker.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-services.fullname" . }}-chunker
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.chunker.resources | nindent 12 }}
+          securityContext:
+            {{- include "rag-services.containerSecurityContext" . | nindent 12 }}
+{{- end }}
+
+{{- /* Plan Service Deployment (Python) */ -}}
+{{- if .Values.plan.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-services.fullname" . }}-plan
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: plan
+spec:
+  replicas: {{ .Values.plan.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-services.name" . }}-plan
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-services.name" . }}-plan
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: plan
+    spec:
+      securityContext:
+        {{- include "rag-services.securityContext" . | nindent 8 }}
+      containers:
+        - name: plan
+          image: {{ include "rag-services.image" (dict "image" .Values.plan.image "tag" .Values.imageRegistry.tag "namespace" .Values.namespace "internal" .Values.imageRegistry.internal "external" .Values.imageRegistry.external) }}
+          imagePullPolicy: {{ .Values.imageRegistry.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.plan.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-services.fullname" . }}-plan
+          env:
+            {{- if eq .Values.dependencies.llm.provider "openai" }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys }}
+                  key: OPENAI_API_KEY
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.plan.resources | nindent 12 }}
+          securityContext:
+            {{- include "rag-services.containerSecurityContext" . | nindent 12 }}
+{{- end }}
+
+{{- /* Embedding Service Deployment (Python) */ -}}
+{{- if .Values.embedding.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-services.fullname" . }}-embedding
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+spec:
+  replicas: {{ .Values.embedding.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-services.name" . }}-embedding
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-services.name" . }}-embedding
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: embedding
+    spec:
+      securityContext:
+        {{- include "rag-services.securityContext" . | nindent 8 }}
+      containers:
+        - name: embedding
+          image: {{ include "rag-services.image" (dict "image" .Values.embedding.image "tag" .Values.imageRegistry.tag "namespace" .Values.namespace "internal" .Values.imageRegistry.internal "external" .Values.imageRegistry.external) }}
+          imagePullPolicy: {{ .Values.imageRegistry.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.embedding.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-services.fullname" . }}-embedding
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.embedding.resources | nindent 12 }}
+          securityContext:
+            {{- include "rag-services.containerSecurityContext" . | nindent 12 }}
+{{- end }}
+
+{{- /* Rerank Service Deployment (Python) */ -}}
+{{- if .Values.rerank.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-services.fullname" . }}-rerank
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rerank
+spec:
+  replicas: {{ .Values.rerank.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-services.name" . }}-rerank
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-services.name" . }}-rerank
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: rerank
+    spec:
+      securityContext:
+        {{- include "rag-services.securityContext" . | nindent 8 }}
+      containers:
+        - name: rerank
+          image: {{ include "rag-services.image" (dict "image" .Values.rerank.image "tag" .Values.imageRegistry.tag "namespace" .Values.namespace "internal" .Values.imageRegistry.internal "external" .Values.imageRegistry.external) }}
+          imagePullPolicy: {{ .Values.imageRegistry.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.rerank.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-services.fullname" . }}-rerank
+          env:
+            - name: COHERE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys }}
+                  key: COHERE_API_KEY
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.rerank.resources | nindent 12 }}
+          securityContext:
+            {{- include "rag-services.containerSecurityContext" . | nindent 12 }}
+{{- end }}
+
+{{- /* Evaluator Service Deployment (Python) */ -}}
+{{- if .Values.evaluator.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-services.fullname" . }}-evaluator
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluator
+spec:
+  replicas: {{ .Values.evaluator.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-services.name" . }}-evaluator
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-services.name" . }}-evaluator
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: evaluator
+    spec:
+      securityContext:
+        {{- include "rag-services.securityContext" . | nindent 8 }}
+      containers:
+        - name: evaluator
+          image: {{ include "rag-services.image" (dict "image" .Values.evaluator.image "tag" .Values.imageRegistry.tag "namespace" .Values.namespace "internal" .Values.imageRegistry.internal "external" .Values.imageRegistry.external) }}
+          imagePullPolicy: {{ .Values.imageRegistry.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.evaluator.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-services.fullname" . }}-evaluator
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.evaluator.resources | nindent 12 }}
+          securityContext:
+            {{- include "rag-services.containerSecurityContext" . | nindent 12 }}
+{{- end }}
+
+{{- /* Vector Gateway Deployment (Python) */ -}}
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-services.fullname" . }}-gateway
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.gateway.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-services.name" . }}-gateway
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-services.name" . }}-gateway
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: gateway
+    spec:
+      securityContext:
+        {{- include "rag-services.securityContext" . | nindent 8 }}
+      containers:
+        - name: gateway
+          image: {{ include "rag-services.image" (dict "image" .Values.gateway.image "tag" .Values.imageRegistry.tag "namespace" .Values.namespace "internal" .Values.imageRegistry.internal "external" .Values.imageRegistry.external) }}
+          imagePullPolicy: {{ .Values.imageRegistry.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-services.fullname" . }}-gateway
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+          securityContext:
+            {{- include "rag-services.containerSecurityContext" . | nindent 12 }}
+{{- end }}
+
+{{- end }}

@@ -1,0 +1,112 @@
+{{- if .Values.enabled }}
+
+{{- /* Chunker Service ConfigMap */ -}}
+{{- if .Values.chunker.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-services.fullname" . }}-chunker
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: chunker
+data:
+  PORT: {{ .Values.chunker.port | quote }}
+{{- end }}
+
+{{- /* Plan Service ConfigMap */ -}}
+{{- if .Values.plan.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-services.fullname" . }}-plan
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: plan
+data:
+  PORT: {{ .Values.plan.port | quote }}
+  LLM_PROVIDER: {{ .Values.dependencies.llm.provider | quote }}
+  LLM_MODEL: {{ .Values.dependencies.llm.model | quote }}
+  {{- if eq .Values.dependencies.llm.provider "vllm" }}
+  LLM_BASE_URL: {{ .Values.dependencies.llm.url | quote }}
+  {{- end }}
+{{- end }}
+
+{{- /* Embedding Service ConfigMap */ -}}
+{{- if .Values.embedding.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-services.fullname" . }}-embedding
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embedding
+data:
+  PORT: {{ .Values.embedding.port | quote }}
+  EMBEDDING_URL: {{ .Values.dependencies.embedding.url | quote }}
+  EMBEDDING_MODEL: {{ .Values.dependencies.embedding.model | quote }}
+  EMBEDDING_DIMENSIONS: {{ .Values.dependencies.embedding.dimensions | quote }}
+{{- end }}
+
+{{- /* Rerank Service ConfigMap */ -}}
+{{- if .Values.rerank.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-services.fullname" . }}-rerank
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rerank
+data:
+  PORT: {{ .Values.rerank.port | quote }}
+  RERANKER_URL: {{ .Values.dependencies.reranker.url | quote }}
+  RERANKER_MODEL: {{ .Values.dependencies.reranker.model | quote }}
+{{- end }}
+
+{{- /* Evaluator Service ConfigMap */ -}}
+{{- if .Values.evaluator.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-services.fullname" . }}-evaluator
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluator
+data:
+  PORT: {{ .Values.evaluator.port | quote }}
+  EMBEDDING_URL: {{ .Values.dependencies.embedding.url | quote }}
+  EMBEDDING_MODEL: {{ .Values.dependencies.embedding.model | quote }}
+{{- end }}
+
+{{- /* Vector Gateway ConfigMap */ -}}
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-services.fullname" . }}-gateway
+  labels:
+    {{- include "rag-services.serviceLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+data:
+  PORT: {{ .Values.gateway.port | quote }}
+  VECTOR_BACKEND: {{ .Values.gateway.config.backend | quote }}
+  DEFAULT_COLLECTION: {{ .Values.gateway.config.collection | quote }}
+  MAX_DOCS: {{ .Values.gateway.config.maxDocs | quote }}
+  MILVUS_HOST: {{ .Values.dependencies.milvus.host | quote }}
+  MILVUS_PORT: {{ .Values.dependencies.milvus.port | quote }}
+  EMBEDDING_URL: {{ .Values.dependencies.embedding.url | quote }}
+  EMBEDDING_MODEL: {{ .Values.dependencies.embedding.model | quote }}
+  EMBEDDING_DIMENSIONS: {{ .Values.dependencies.embedding.dimensions | quote }}
+  RERANKER_URL: {{ .Values.dependencies.reranker.url | quote }}
+  RERANKER_MODEL: {{ .Values.dependencies.reranker.model | quote }}
+  DOCLING_URL: {{ .Values.dependencies.docling.url | quote }}
+  CHUNKER_URL: http://{{ include "rag-services.fullname" . }}-chunker.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.chunker.port }}
+  PLAN_URL: http://{{ include "rag-services.fullname" . }}-plan.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.plan.port }}
+{{- end }}
+
+{{- end }}

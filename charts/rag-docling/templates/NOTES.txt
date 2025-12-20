@@ -1,0 +1,76 @@
+===============================================================================
+ RAG-DOCLING: Document Conversion Service Deployment Summary
+===============================================================================
+
+Docling has been deployed successfully!
+
+Configuration:
+  Workers: {{ .Values.config.workers }}
+  Timeout: {{ .Values.config.timeout }}s
+  OCR Enabled: {{ .Values.config.ocrEnabled }}
+  Table Extraction: {{ .Values.config.tableExtraction }}
+  {{- if .Values.gpu.enabled }}
+  GPU Acceleration: Enabled ({{ .Values.gpu.count }} GPU(s))
+  {{- else }}
+  GPU Acceleration: Disabled (CPU only)
+  {{- end }}
+
+-------------------------------------------------------------------------------
+CONNECTION INFO
+-------------------------------------------------------------------------------
+
+Internal URL (for other services):
+  http://{{ include "rag-docling.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.port }}
+
+{{- if .Values.openshift.route.enabled }}
+
+External URL:
+  https://$(oc get route {{ include "rag-docling.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')
+{{- end }}
+
+-------------------------------------------------------------------------------
+VERIFY DEPLOYMENT
+-------------------------------------------------------------------------------
+
+Watch pod come up:
+  oc get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+Health check:
+  curl -sk https://$(oc get route {{ include "rag-docling.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')/health
+
+-------------------------------------------------------------------------------
+USAGE EXAMPLES
+-------------------------------------------------------------------------------
+
+Convert a PDF document:
+  DOCLING_URL=$(oc get route {{ include "rag-docling.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')
+
+  # Upload and convert a PDF
+  curl -sk https://$DOCLING_URL/convert \
+    -F "file=@document.pdf" \
+    -H "Accept: application/json"
+
+  # Convert from URL
+  curl -sk https://$DOCLING_URL/convert \
+    -H "Content-Type: application/json" \
+    -d '{"url": "https://example.com/document.pdf"}'
+
+Supported formats:
+  - PDF (.pdf)
+  - Microsoft Word (.docx)
+  - HTML (.html, .htm)
+  - PowerPoint (.pptx)
+  - Images (.png, .jpg, .tiff) - with OCR
+  - Markdown (.md)
+
+-------------------------------------------------------------------------------
+INTEGRATION WITH RAG SERVICES
+-------------------------------------------------------------------------------
+
+To use Docling with rag-services, set the following in rag-services values:
+
+  dependencies:
+    docling:
+      url: "http://{{ include "rag-docling.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.port }}"
+
+===============================================================================

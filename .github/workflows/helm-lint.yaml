@@ -1,0 +1,54 @@
+name: Helm Lint
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Add Helm repos (for dependencies)
+        run: |
+          helm repo add milvus https://zilliztech.github.io/milvus-helm/
+          helm repo update
+
+      - name: Lint rag-milvus
+        run: |
+          cd charts/rag-milvus
+          helm dependency update
+          helm lint .
+
+      - name: Lint rag-valkey
+        run: helm lint charts/rag-valkey
+
+      - name: Lint rag-vllm-embeddings
+        run: helm lint charts/rag-vllm-embeddings
+
+      - name: Lint rag-docling
+        run: helm lint charts/rag-docling
+
+      - name: Lint rag-services
+        run: helm lint charts/rag-services
+
+      - name: Template validation
+        run: |
+          for chart in rag-valkey rag-vllm-embeddings rag-docling rag-services; do
+            echo "=== Validating $chart ==="
+            helm template test charts/$chart > /dev/null
+            echo "✓ $chart templates valid"
+          done

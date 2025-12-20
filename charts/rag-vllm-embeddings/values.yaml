@@ -1,0 +1,159 @@
+# ============================================================================
+# RAG-VLLM-EMBEDDINGS: Embedding & Reranker Models for Advanced RAG
+# ============================================================================
+# Deploys vLLM-based embedding and reranker models on OpenShift with GPU.
+#
+# Models are downloaded from HuggingFace on first startup and cached in a
+# shared PVC for subsequent restarts.
+# ============================================================================
+
+# Enable/disable the chart
+enabled: true
+
+# ----------------------------------------------------------------------------
+# GLOBAL SETTINGS
+# ----------------------------------------------------------------------------
+
+# vLLM container image
+image:
+  repository: vllm/vllm-openai
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Shared model cache PVC
+modelCache:
+  enabled: true
+  size: 50Gi
+  # storageClass: ""  # Use default if empty
+
+# GPU configuration
+gpu:
+  # GPU memory utilization (0.0-1.0)
+  # Lower values allow multiple models on one GPU
+  memoryUtilization: "0.3"
+
+  # Tolerations for GPU nodes
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+
+  # Node selector for GPU nodes (optional)
+  nodeSelector: {}
+    # node-role.kubernetes.io/gpu: ""
+
+# OpenShift routes
+openshift:
+  route:
+    enabled: true
+    tls:
+      termination: edge
+
+# ----------------------------------------------------------------------------
+# EMBEDDING MODELS
+# ----------------------------------------------------------------------------
+# Enable the models you need. Each enabled model requires 1 GPU.
+
+embeddings:
+  # MiniLM - Fast, lightweight (384 dimensions)
+  minilm:
+    enabled: true
+    model: sentence-transformers/all-MiniLM-L6-v2
+    maxModelLen: 256
+    dimensions: 384
+    resources:
+      requests:
+        cpu: "2"
+        memory: 4Gi
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "4"
+        memory: 8Gi
+        nvidia.com/gpu: "1"
+
+  # Granite - IBM's multilingual model (768 dimensions)
+  granite:
+    enabled: false
+    model: ibm-granite/granite-embedding-278m-multilingual
+    maxModelLen: 512
+    dimensions: 768
+    resources:
+      requests:
+        cpu: "2"
+        memory: 8Gi
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "4"
+        memory: 16Gi
+        nvidia.com/gpu: "1"
+
+  # BGE Large - High quality (1024 dimensions)
+  bgeLarge:
+    enabled: false
+    model: BAAI/bge-large-en-v1.5
+    maxModelLen: 512
+    dimensions: 1024
+    resources:
+      requests:
+        cpu: "2"
+        memory: 8Gi
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "4"
+        memory: 16Gi
+        nvidia.com/gpu: "1"
+
+# ----------------------------------------------------------------------------
+# RERANKER MODELS
+# ----------------------------------------------------------------------------
+# Cross-encoder models for relevance scoring
+
+rerankers:
+  # MS-MARCO MiniLM - Fast reranker
+  msmarco:
+    enabled: true
+    model: cross-encoder/ms-marco-MiniLM-L12-v2
+    maxModelLen: 512
+    resources:
+      requests:
+        cpu: "2"
+        memory: 4Gi
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "4"
+        memory: 8Gi
+        nvidia.com/gpu: "1"
+
+  # BGE Reranker v2 - High quality multilingual
+  bge:
+    enabled: false
+    model: BAAI/bge-reranker-v2-m3
+    maxModelLen: 512
+    resources:
+      requests:
+        cpu: "2"
+        memory: 8Gi
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "4"
+        memory: 16Gi
+        nvidia.com/gpu: "1"
+
+# ----------------------------------------------------------------------------
+# COMMON POD SETTINGS
+# ----------------------------------------------------------------------------
+
+# Probes timing (models can take time to load)
+probes:
+  liveness:
+    initialDelaySeconds: 180
+    periodSeconds: 30
+    timeoutSeconds: 10
+  readiness:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+# Shared memory for model inference
+sharedMemory:
+  size: 2Gi

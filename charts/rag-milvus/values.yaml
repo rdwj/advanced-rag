@@ -1,0 +1,137 @@
+# ============================================================================
+# RAG-MILVUS: Vector Database for Advanced RAG Pipeline
+# ============================================================================
+# OpenShift-optimized Milvus deployment for RAG workloads.
+# Wraps the official Milvus Helm chart with sensible defaults.
+#
+# Prerequisites:
+#   oc adm policy add-scc-to-user anyuid -z default -n <namespace>
+#   oc adm policy add-scc-to-user anyuid -z <release>-minio -n <namespace>
+# ============================================================================
+
+# Enable/disable the chart (for umbrella chart control)
+enabled: true
+
+# Cluster domain for Route URLs (auto-detected if empty)
+clusterDomain: ""
+
+# ----------------------------------------------------------------------------
+# OPENSHIFT INTEGRATION
+# ----------------------------------------------------------------------------
+openshift:
+  # Create Route for external access to Milvus
+  route:
+    enabled: true
+    tls:
+      termination: edge
+
+# ----------------------------------------------------------------------------
+# MILVUS CONFIGURATION
+# ----------------------------------------------------------------------------
+# All settings below are passed to the milvus subchart.
+# Full options: https://github.com/milvus-io/milvus-helm
+#
+# SIZING GUIDE:
+#   Small (dev/test):    etcd 10Gi, minio 20Gi, memory 4Gi
+#   Medium (production): etcd 20Gi, minio 100Gi, memory 8Gi
+#   Large (high-volume): etcd 50Gi, minio 500Gi, memory 16Gi
+# ----------------------------------------------------------------------------
+
+milvus:
+  enabled: true
+
+  # ------------------------------------
+  # Deployment Mode
+  # ------------------------------------
+  # standalone: Single-node (simpler, sufficient for most RAG workloads)
+  # cluster: Distributed (for very large scale)
+  cluster:
+    enabled: false
+
+  # ------------------------------------
+  # Standalone Resources
+  # ------------------------------------
+  # Adjust based on expected document volume and query load
+  standalone:
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 2Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+
+  # ------------------------------------
+  # etcd (Metadata Storage)
+  # ------------------------------------
+  etcd:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        cpu: "100m"
+        memory: 256Mi
+      limits:
+        cpu: "500m"
+        memory: 512Mi
+
+  # ------------------------------------
+  # MinIO (Object Storage)
+  # ------------------------------------
+  minio:
+    mode: standalone
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        cpu: "100m"
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+
+  # ------------------------------------
+  # Messaging (Standalone Mode)
+  # ------------------------------------
+  # Disable heavy Pulsar/Kafka, use lightweight embedded streaming
+  pulsar:
+    enabled: false
+  pulsarv3:
+    enabled: false
+  kafka:
+    enabled: false
+
+  streaming:
+    enabled: true
+    woodpecker:
+      embedded: true
+      storage:
+        type: minio
+
+  # ------------------------------------
+  # OpenShift Security Contexts
+  # ------------------------------------
+  # Required for OpenShift's restricted SCC
+  securityContext:
+    runAsNonRoot: true
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+  # ------------------------------------
+  # Milvus Server Configuration
+  # ------------------------------------
+  extraConfigFiles:
+    user.yaml: |
+      common:
+        security:
+          # Set to true for production with external access
+          authorizationEnabled: false

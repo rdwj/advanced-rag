@@ -1,0 +1,159 @@
+{{- if .Values.enabled }}
+
+{{- /* MS-MARCO Reranker */ -}}
+{{- if .Values.rerankers.msmarco.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-msmarco
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reranker
+    model: msmarco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-msmarco
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-msmarco
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: reranker
+        model: msmarco
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --model
+            - {{ .Values.rerankers.msmarco.model }}
+            - --task
+            - score
+            - --port
+            - "8000"
+            - --max-model-len
+            - {{ .Values.rerankers.msmarco.maxModelLen | quote }}
+            - --dtype
+            - float16
+            - --gpu-memory-utilization
+            - {{ .Values.gpu.memoryUtilization | quote }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            {{- include "rag-vllm-embeddings.commonEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.rerankers.msmarco.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "rag-vllm-embeddings.commonVolumeMounts" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+      volumes:
+        {{- include "rag-vllm-embeddings.commonVolumes" . | nindent 8 }}
+      {{- with .Values.gpu.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+{{- /* BGE Reranker */ -}}
+{{- if .Values.rerankers.bge.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-vllm-embeddings.fullname" . }}-bge-reranker
+  labels:
+    {{- include "rag-vllm-embeddings.modelLabels" . | nindent 4 }}
+    app.kubernetes.io/component: reranker
+    model: bge-reranker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-bge-reranker
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rag-vllm-embeddings.name" . }}-bge-reranker
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: reranker
+        model: bge-reranker
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --model
+            - {{ .Values.rerankers.bge.model }}
+            - --task
+            - score
+            - --port
+            - "8000"
+            - --max-model-len
+            - {{ .Values.rerankers.bge.maxModelLen | quote }}
+            - --dtype
+            - float16
+            - --gpu-memory-utilization
+            - {{ .Values.gpu.memoryUtilization | quote }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            {{- include "rag-vllm-embeddings.commonEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.rerankers.bge.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "rag-vllm-embeddings.commonVolumeMounts" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+      volumes:
+        {{- include "rag-vllm-embeddings.commonVolumes" . | nindent 8 }}
+      {{- with .Values.gpu.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+{{- end }}

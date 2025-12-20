@@ -1,0 +1,122 @@
+===============================================================================
+ RAG-SERVICES: Advanced RAG Microservices Deployment Summary
+===============================================================================
+
+Deployed services:
+
+{{- if .Values.chunker.enabled }}
+  ✓ Chunker Service (Go)
+    Service: {{ include "rag-services.fullname" . }}-chunker:{{ .Values.chunker.port }}
+{{- end }}
+{{- if .Values.plan.enabled }}
+  ✓ Plan Service (Python - LLM chunking plans)
+    Service: {{ include "rag-services.fullname" . }}-plan:{{ .Values.plan.port }}
+    LLM Provider: {{ .Values.dependencies.llm.provider }}
+{{- end }}
+{{- if .Values.embedding.enabled }}
+  ✓ Embedding Service (Python)
+    Service: {{ include "rag-services.fullname" . }}-embedding:{{ .Values.embedding.port }}
+{{- end }}
+{{- if .Values.rerank.enabled }}
+  ✓ Rerank Service (Python)
+    Service: {{ include "rag-services.fullname" . }}-rerank:{{ .Values.rerank.port }}
+{{- end }}
+{{- if .Values.evaluator.enabled }}
+  ✓ Evaluator Service (Python)
+    Service: {{ include "rag-services.fullname" . }}-evaluator:{{ .Values.evaluator.port }}
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  ✓ Vector Gateway (Python - unified API)
+    Service: {{ include "rag-services.fullname" . }}-gateway:{{ .Values.gateway.port }}
+{{- end }}
+
+-------------------------------------------------------------------------------
+PREREQUISITES CHECK
+-------------------------------------------------------------------------------
+
+Before these services will work, ensure:
+
+1. Secret exists with API keys:
+   oc get secret {{ .Values.secrets.apiKeys }} -n {{ .Release.Namespace }}
+
+   If missing, create it:
+   oc create secret generic {{ .Values.secrets.apiKeys }} \
+     --from-literal=OPENAI_API_KEY="sk-..." \
+     --from-literal=COHERE_API_KEY="..." \
+     -n {{ .Release.Namespace }}
+
+2. Dependencies are accessible:
+   - Milvus: {{ .Values.dependencies.milvus.host }}:{{ .Values.dependencies.milvus.port }}
+   - Embedding: {{ .Values.dependencies.embedding.url }}
+   - Reranker: {{ .Values.dependencies.reranker.url }}
+   - Docling: {{ .Values.dependencies.docling.url }}
+
+3. Container images exist in registry:
+{{- if .Values.imageRegistry.internal }}
+   Using internal registry: image-registry.openshift-image-registry.svc:5000/{{ .Values.namespace }}/
+{{- else }}
+   Using external registry: {{ .Values.imageRegistry.external }}
+{{- end }}
+   Tag: {{ .Values.imageRegistry.tag }}
+
+-------------------------------------------------------------------------------
+VERIFY DEPLOYMENT
+-------------------------------------------------------------------------------
+
+Watch pods come up:
+  oc get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+Check all services are healthy:
+  for svc in chunker plan embedding rerank evaluator gateway; do
+    echo -n "$svc: "
+    curl -sk https://$(oc get route {{ include "rag-services.fullname" . }}-$svc -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')/healthz 2>/dev/null || echo "not ready"
+  done
+
+{{- if .Values.gateway.enabled }}
+
+-------------------------------------------------------------------------------
+QUICK START - USING THE GATEWAY
+-------------------------------------------------------------------------------
+
+The Vector Gateway provides a unified API for all RAG operations.
+
+Gateway URL:
+  https://$(oc get route {{ include "rag-services.fullname" . }}-gateway -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')
+
+Example - Ingest a document:
+  GATEWAY=$(oc get route {{ include "rag-services.fullname" . }}-gateway -n {{ .Release.Namespace }} -o jsonpath='{.spec.host}')
+  curl -sk https://$GATEWAY/ingest \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello world", "metadata": {"source": "test"}}'
+
+Example - Search:
+  curl -sk https://$GATEWAY/search \
+    -H "Content-Type: application/json" \
+    -d '{"query": "Hello", "top_k": 5}'
+
+{{- end }}
+
+-------------------------------------------------------------------------------
+INTERNAL SERVICE URLs (for other applications)
+-------------------------------------------------------------------------------
+
+{{- if .Values.chunker.enabled }}
+Chunker:   http://{{ include "rag-services.fullname" . }}-chunker.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.chunker.port }}
+{{- end }}
+{{- if .Values.plan.enabled }}
+Plan:      http://{{ include "rag-services.fullname" . }}-plan.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.plan.port }}
+{{- end }}
+{{- if .Values.embedding.enabled }}
+Embedding: http://{{ include "rag-services.fullname" . }}-embedding.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.embedding.port }}
+{{- end }}
+{{- if .Values.rerank.enabled }}
+Rerank:    http://{{ include "rag-services.fullname" . }}-rerank.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.rerank.port }}
+{{- end }}
+{{- if .Values.evaluator.enabled }}
+Evaluator: http://{{ include "rag-services.fullname" . }}-evaluator.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.evaluator.port }}
+{{- end }}
+{{- if .Values.gateway.enabled }}
+Gateway:   http://{{ include "rag-services.fullname" . }}-gateway.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.gateway.port }}
+{{- end }}
+
+===============================================================================
